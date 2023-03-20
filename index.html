@@ -26,22 +26,20 @@
 <body>
     
     <div class="loading-screen">
-        <img src="images/Windows.gif" alt="Windows-98">
-  <p>Loading...</p> 
-  <div class="progress-bar">
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
-    <div class="bar"></div>
-    </div>
+        <img src="images/Windows1.gif" alt="Windows-98">
   </div>
 
       <script>
 
+        var loadingScreen = document.querySelector('.loading-screen');
+
+        loadingScreen.addEventListener('transitionend', function() {
+          loadingScreen.style.display = 'none';
+        });
+        
         setTimeout(function(){
-            document.querySelector('.loading-screen').style.display = 'none';
-          }, 4000); 
+          loadingScreen.classList.add('fade-out');
+        }, 4000);
 
       </script>
       <div class="background-container">

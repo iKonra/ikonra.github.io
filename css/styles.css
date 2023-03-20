@@ -17,10 +17,7 @@
   flex-direction: column;
   z-index: 9999;
 }
-.loading-screen img {
-  width: 300px;
-  height: 300px;
-}
+
 .loading-screen p {
   color: #fff;
   font-size: 24px;
@@ -71,7 +68,13 @@
     transform: scaleY(1);
   }
 }
+.loading-screen {
+  transition: opacity 0.5s ease-out;
+}
 
+.loading-screen.fade-out {
+  opacity: 0;
+}
 
 .background-container {
   position: fixed;
@@ -205,11 +208,11 @@ header {
 @media only screen and (max-width: 480px) {
 
   .loading-screen {
-    padding: 40px 20px;
+    padding: 0px 0px;
   }
   
   .loading-screen img {
-    max-width: 80%;
+    max-width: 150%;
   }
   
   .loading-screen p {
