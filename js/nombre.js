@@ -1,8 +1,8 @@
-const nick = document.querySelector('#nick');
+const nickname = document.querySelector('#nick');
 
-nick.addEventListener('click', () => {
+nickname.addEventListener('click', () => {
   anime({
-    targets: nick,
+    targets: nickname,
     translateY: 50,
     opacity: 0,
     duration: 1000,

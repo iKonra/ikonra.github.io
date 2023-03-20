@@ -24,50 +24,7 @@
   font-family: Arial, sans-serif;
   text-align: center;
 }
-.progress-bar {
-  width: 200px;
-  margin-top: 30px;
-  height: 30px;
-  background-color: rgba(255, 255, 255, 0);
-  display: flex;
-  justify-content: space-between;
-}
 
-.bar {
-  width: 30px;
-  height: 30px;
-  background-color: #14f8f8bd;
-  animation: fill 2s ease-in-out infinite;
-}
-
-.bar:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.bar:nth-child(2) {
-  animation-delay: 0.25s;
-}
-
-.bar:nth-child(3) {
-  animation-delay: 0.5s;
-}
-
-.bar:nth-child(4) {
-  animation-delay: 0.75s;
-}
-
-.bar:nth-child(5) {
-  animation-delay: 1s;
-}
-
-@keyframes fill {
-  0% {
-    transform: scaleY(0);
-  }
-  100% {
-    transform: scaleY(1);
-  }
-}
 .loading-screen {
   transition: opacity 0.5s ease-out;
 }
@@ -122,6 +79,7 @@
 }
 .star {
   position: absolute;
+  z-index: -1;
   height: 3px;
   width: 3px;
   background-color: white;
@@ -140,6 +98,7 @@
 
 #nick{
   text-align:center;
+  z-index: 1;
   font-size:6.5em;
   margin-top: 7%;
   margin-bottom: 290px;
@@ -177,10 +136,13 @@ header {
 .stats-container {
 
   color:white;
+  cursor:default;
+  padding: 10px;
 
 }
 .asteroid {
   position: absolute;
+  z-index: -1;
   width: 15px;
   height: 15px;
   background: rgb(92, 92, 92);
@@ -221,38 +183,6 @@ header {
     font-size: 1.2rem;
   }
   
-  .progress-bar {
-    height: 10px;
-    margin-top: 20px;
-  }
-  
-  .progress-bar span {
-    display: inline-block;
-    height: 100%;
-    width: 10%;
-    margin-right: 5px;
-    background-color: white;
-    animation: progress 1s linear infinite;
-  }
-  
-  .progress-bar span:nth-child(2) {
-    animation-delay: 0.2s;
-  }
-  
-  .progress-bar span:nth-child(3) {
-    animation-delay: 0.4s;
-  }
-  
-  .progress-bar span:nth-child(4) {
-    animation-delay: 0.6s;
-  }
-  
-  .progress-bar span:nth-child(5) {
-    animation-delay: 0.8s;
-  }
-
-
-
   /* Estilos para pantallas pequeñas */
   .background-container {
     position: cover;
@@ -273,7 +203,26 @@ header {
     font-size: 0.8em;
   }
 }
+@media only screen and (max-width: 768px) {
 
+  #nick{
+    font-size: 6em;
+    margin-top: 5%;
+    margin-bottom: 320px;
+  }
+
+  .redes ul li a {
+    font-size: 50px;
+    padding: 5px 10px;
+  }
+
+  .stats-container {
+    font-size: 1.2em;
+    margin-top: 50px;
+    text-align: center;
+  }
+
+}
 
 
 
