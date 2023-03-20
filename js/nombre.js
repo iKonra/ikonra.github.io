@@ -1,3 +1,5 @@
+const nick = document.querySelector('#nick');
+
 nick.addEventListener('click', () => {
   anime({
     targets: nick,
