@@ -1,0 +1,271 @@
+* {
+  margin: 0;
+  padding: 0;
+
+}
+
+.loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 100vw;
+  background-color: #000000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 9999;
+}
+.loading-screen img {
+  width: 300px;
+  height: 300px;
+}
+.loading-screen p {
+  color: #fff;
+  font-size: 24px;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+.progress-bar {
+  width: 200px;
+  margin-top: 30px;
+  height: 30px;
+  background-color: rgba(255, 255, 255, 0);
+  display: flex;
+  justify-content: space-between;
+}
+
+.bar {
+  width: 30px;
+  height: 30px;
+  background-color: #008080;
+  animation: fill 2s ease-in-out infinite;
+}
+
+.bar:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.bar:nth-child(2) {
+  animation-delay: 0.25s;
+}
+
+.bar:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+.bar:nth-child(4) {
+  animation-delay: 0.75s;
+}
+
+.bar:nth-child(5) {
+  animation-delay: 1s;
+}
+
+@keyframes fill {
+  0% {
+    transform: scaleY(0);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+
+.background-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background-color: black;
+}
+#generate-stars-btn {
+  padding: 10px;
+  background-color: rgb(51, 51, 51);
+  color: rgb(255, 255, 255);
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.redes {
+ border: 2px;
+ margin-top: 2%;
+}
+
+.redes ul {
+
+ text-align: center;
+}
+
+.redes ul li {
+ display: inline-block;
+}
+
+.redes ul li a {
+ color: rgb(255, 255, 255);
+ padding: 10px 20px 0px;
+ font-size: 30px;
+ display: block;
+ transition: all 0.7s ease-in-out;
+}
+
+.redes ul li a:hover {
+  transform: scale(1.1);
+  color: grey;
+  
+}
+.star {
+  position: absolute;
+  height: 3px;
+  width: 3px;
+  background-color: white;
+  border-radius: 50%;
+  animation: twinkling 1s infinite;
+}
+
+@keyframes twinkling {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+
+#nick{
+  text-align:center;
+  font-size:6.5em;
+  margin-top: 7%;
+  margin-bottom: 290px;
+  cursor: default;
+  color: rgb(255, 255, 255);
+  font-family: 'Arvo', sans-serif;
+  
+  
+}
+#nick strong {
+  color: black;
+  background-color: orange;
+  border-radius: 5px;
+  
+}
+
+header {
+
+  text-align: right;
+  padding-right: 3%;
+  padding-top: 1%;
+  font-family: 'Roboto Condensed', sans-serif;
+  letter-spacing: 1px;
+  
+  }
+#generate-stars-btn:hover {
+
+  transform: scale(1.07);
+  box-shadow:1px 1px 2px 1.5px white;
+
+}
+.stats-container {
+
+  color:white;
+
+}
+.asteroid {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  background: orange;
+  border-radius: 50%;
+  animation: asteroidMove 2s linear infinite, asteroidExplosion 1s ease-in-out forwards;
+}
+
+@keyframes asteroidMove {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(calc(100% + 30px), 0);
+  }
+}
+
+@keyframes asteroidExplosion {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+@media only screen and (max-width: 480px) {
+
+  .loading-screen {
+    padding: 40px 20px;
+  }
+  
+  .loading-screen img {
+    max-width: 80%;
+  }
+  
+  .loading-screen p {
+    font-size: 1.2rem;
+  }
+  
+  .progress-bar {
+    height: 10px;
+    margin-top: 20px;
+  }
+  
+  .progress-bar span {
+    display: inline-block;
+    height: 100%;
+    width: 10%;
+    margin-right: 5px;
+    background-color: white;
+    animation: progress 1s linear infinite;
+  }
+  
+  .progress-bar span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  
+  .progress-bar span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  
+  .progress-bar span:nth-child(4) {
+    animation-delay: 0.6s;
+  }
+  
+  .progress-bar span:nth-child(5) {
+    animation-delay: 0.8s;
+  }
+
+
+
+  /* Estilos para pantallas pequeñas */
+  .background-container {
+    position: cover;
+  }
+  #nick {
+    font-size: 5em;
+    margin-top: 5%;
+    margin-bottom: 300px;
+  }
+ 
+  .redes ul li a {
+    font-size: 50px;
+    padding: 5px 10px 0px;
+  }
+  .stats-container {
+    margin-top: 160px;
+    text-align: center;
+    font-size: 0.8em;
+  }
+}
+
+
+
+
