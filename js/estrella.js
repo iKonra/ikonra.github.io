@@ -50,16 +50,16 @@ function generateAsteroid() {
   const intervalId = setInterval(() => {
     const currentTop = parseInt(asteroid.style.top);
     const currentLeft = parseInt(asteroid.style.left);
-    const newTop = currentTop + 2; // velocidad de movimiento en píxeles
-    const newLeft = currentLeft + 2; // velocidad de movimiento en píxeles
+    const newTop = currentTop + 2; 
+    const newLeft = currentLeft + 2; 
     asteroid.style.top = `${newTop}%`;
     asteroid.style.left = `${newLeft}%`;
 
-    if (newTop > 100 || newLeft > 100) { // cuando el asteroide sale de la pantalla, se detiene el intervalo
+    if (newTop > 100 || newLeft > 100) {
       clearInterval(intervalId);
       asteroid.remove();
     }
-  }, 30); // intervalo de tiempo en milisegundos
+  }, 30);
   
   return asteroid;
 }
