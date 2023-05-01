@@ -3,60 +3,124 @@
   padding: 0;
 }
 
-body {
-  overflow: hidden;
-}
-
-#background-container {
+.background-container {
   position: fixed;
-  top: 0;
   text-align: center;
+  top: 0;
   left: 0;
   height: 100%;
   width: 100%;
-  padding: 20px;
-  z-index: 2; 
+  background-color: black;
+  z-index: 2;
 }
 #message {
   display: inline-block;
   font-size: 4.5em;
-  margin-top: 7%;
+  margin-top: 13%;
   cursor: default;
   color: rgba(255, 255, 255, 0.8); 
-  font-family: 'Arvo', sans-serif;
+  font-family:  sans-serif;
 }
 
 #message strong {
   color: black;
   background-color: rgb(255, 255, 255);
-  margin-left: 5px;
-  padding-left: 1px;
-  padding-right: 1px;
+  padding-left: 2px;
+  margin-left: 15px;
+  padding-right: 2px;
   border-radius: 5px;
 }
-canvas {
+.star {
   position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 0;
+  z-index: -1;
+  height: 2px;
+  width: 2px;
+  background-color: white;
+  border-radius: 50%;
+  animation: twinkling 3s infinite;
 }
-  
-  @media only screen and (max-width: 480px) {
-.background-container {
-    position: cover;
+
+@keyframes twinkling {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+.home-button {
+  position: relative;
+  display: inline-block;
+  margin-top: 100px;
+  padding: 10px 20px;
+  background-color: white;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: 200;
+  letter-spacing: 0.8px;
+  font-size: 0.7em;
+  color: rgb(0, 0, 0);
+  font-family: 'Arvo', serif;
+  transition: all 0.7s ease-in-out;
+}
+
+.home-button:hover {
+  background-color: white;
+  color: black;
+}
+
+.home-button::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -50px;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid white;
+  cursor: default;
+  border-right: 2px solid white;
+  transform: translateY(-50%) rotate(90deg);
+  animation: arrow 1s infinite;
+}
+.home-button::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 150%;
+  margin-left: 0px;
+  cursor: default;
+  width: 10px;
+  height: 10px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: translateY(-50%) rotate(-90deg) rotate(180deg);
+  animation: arrow 1s infinite;
+}
+@keyframes arrow {
+  0% {
+    opacity: 1;
+    transform: translateY(-50%) rotate(45deg) translateX(0);
+    
   }
+  50% {
+    opacity: 0.3;
+    transform: translateY(-50%) rotate(45deg) translateX(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) rotate(45deg) translateX(0);
+   
+  }
+}
+
+
+@media screen and (max-width: 480px) {
   #message {
-    font-size: 5em;
-    margin-top: 5%;
-    margin-bottom: 300px;
+    font-size: 3.5em;
+    margin-top: 40%;
   }
 }
-@media only screen and (max-width: 768px) {
 
-  #message{
-    font-size: 6em;
-    margin-top: 5%;
-    margin-bottom: 320px;
+@media screen and (min-width: 481px) and (max-width: 768px) {
+  #message {
+    font-size: 5.5em;
+    margin-top: 40%;
   }
-
 }

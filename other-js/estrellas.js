@@ -16,14 +16,6 @@ function generateStar() {
   
   numStars++;
 
-
-  if (numStars % 100 === 0 && numStars <= 1000) {
-    starSize += 0.05;
-    if (!isGeneratingPlanets) {
-      isGeneratingPlanets = true;
-    }
-    generatePlanet();
-  }
 }
 
 function generateStarElement() {
@@ -59,6 +51,7 @@ function generateAsteroid() {
   return asteroid;
 }
 
+
 setInterval(() => {
   generateStar();
-}, 400);
+}, 100);

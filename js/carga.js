@@ -1,6 +1,6 @@
 var loadingScreen = document.querySelector('.loading-screen');
     var nick = document.getElementById('nick');
-    var restOfElements = Array.from(document.querySelectorAll('.background-container .redes, .background-container .stats-container, #generate-stars-btn, .donate-containe, #donate '));
+    var restOfElements = Array.from(document.querySelectorAll('.background-container .redes, .background-container .stats-container, #generate-stars-btn, .donate-container, #donate '));
 
     loadingScreen.addEventListener('transitionend', function() {
         loadingScreen.style.opacity = '0';

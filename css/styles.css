@@ -41,15 +41,6 @@
   width: 100%;
   background-color: black;
 }
-#generate-stars-btn {
-  padding: 10px;
-  background-color: rgb(51, 51, 51);
-  color: rgb(255, 255, 255);
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
 .redes {
  border: 2px;
  margin-top: 2%;
@@ -66,6 +57,7 @@
 
 .redes ul li a {
  color: rgb(255, 255, 255);
+ margin-top: 50px;
  padding: 10px 20px 0px;
  font-size: 30px;
  display: block;
@@ -110,7 +102,7 @@
 }
 #nick strong {
   color: black;
-  background-color: orange;
+  background-color: rgb(255, 255, 255);
   margin-left: 5px;
   padding-left: 1px;
   padding-right: 1px;
@@ -119,45 +111,6 @@
 }
 .donate-container {
   text-align: center;
-}
-#donate {
-  opacity: 60%;
-  background-color: #2c2c2cdc;
-  font-family: 'Arvo', sans-serif;
-  color: white;
-  font-size: 1em;
-  text-align: center;
-  padding: 10px 20px;
-  margin: 0 auto 180px auto;
-  border: none;
-  text-decoration: none;
-  border-radius: 5px;
-  cursor: pointer;
-  display: inline-block;
-  max-width: 100%;
-}
-
-header {
-
-  text-align: right;
-  padding-right: 3%;
-  padding-top: 1%;
-  font-family: 'Roboto Condensed', sans-serif;
-  letter-spacing: 1px;
-  
-  }
-#generate-stars-btn:hover {
-
-  transform: scale(1.07);
-  box-shadow:1px 1px 2px 1.5px white;
-
-}
-.stats-container {
-
-  color:white;
-  cursor:default;
-  padding: 10px;
-
 }
 .asteroid {
   position: absolute;
