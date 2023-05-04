@@ -63,11 +63,16 @@
  display: block;
  transition: all 0.7s ease-in-out;
 }
-
 .redes ul li a:hover {
-  transform: scale(1.1);
-  color: grey;
-  
+  transform: scale(1.2);
+  color: rgb(124, 124, 124);
+}
+.redes ul li a:not(:hover) i {
+  filter: none;
+}
+
+.redes ul li:hover > i {
+  filter: blur(3px);
 }
 .star {
   position: absolute;
@@ -109,15 +114,12 @@
   border-radius: 5px;
   
 }
-.donate-container {
-  text-align: center;
-}
 .asteroid {
   position: absolute;
   z-index: -1;
   width: 15px;
   height: 15px;
-  background: rgb(92, 92, 92);
+  background: rgb(255, 196, 0);
   border-radius: 50%;
   animation: asteroidMove 2s linear infinite, asteroidExplosion 1s ease-in-out forwards;
 }
@@ -162,7 +164,7 @@
   }
   #nick {
     font-size: 5em;
-    margin-top: 5%;
+    margin-top: 30%;
     margin-bottom: 300px;
   }
  
@@ -180,7 +182,7 @@
 
   #nick{
     font-size: 6em;
-    margin-top: 5%;
+    margin-top: 30%;
     margin-bottom: 320px;
   }
 
