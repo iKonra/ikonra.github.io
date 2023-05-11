@@ -1,6 +1,6 @@
 var loadingScreen = document.querySelector('.loading-screen');
     var nick = document.getElementById('nick');
-    var restOfElements = Array.from(document.querySelectorAll('.background-container .redes, .background-container .stats-container, #generate-stars-btn, .donate-container, #donate '));
+    var restOfElements = Array.from(document.querySelectorAll('.background-container .redes, .background-container .stats-container, #generate-stars-btn, .donate-container, #donate, .mode-switcher '));
 
     loadingScreen.addEventListener('transitionend', function() {
         loadingScreen.style.opacity = '0';
@@ -20,3 +20,9 @@ var loadingScreen = document.querySelector('.loading-screen');
     setTimeout(function(){
         loadingScreen.classList.add('fade-out');
     }, 4000);
+
+
+    function toggleDarkMode() {
+        var body = document.body;
+        body.classList.toggle("dark-mode");
+      }
