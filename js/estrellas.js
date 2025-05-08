@@ -54,6 +54,6 @@ document.addEventListener("DOMContentLoaded", () => {
   
     setInterval(() => {
       generateStar();
-    }, 1500);
+    }, 200);
   });
   

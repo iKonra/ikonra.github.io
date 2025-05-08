@@ -31,6 +31,10 @@
     padding-right: 2px;
     border-radius: 5px;
   }
+#holagithubnadiemepuededecirquetanlargaesunaetiqueta {
+  color: white;
+  font-family:  sans-serif;
+}
   .star {
     position: absolute;
     z-index: -1;
