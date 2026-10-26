@@ -1,63 +1,54 @@
-import { motion } from 'motion/react'
 import { useI18n } from '../i18n/I18nProvider'
-import BlurText from '../components/BlurText'
-import Reveal from '../components/Reveal'
-import SpotlightCard from '../components/SpotlightCard'
-import TiltCard from '../components/TiltCard'
+import { Heading, Rise } from '../components/motion'
+import { ParallaxComponent } from '@/components/ui/parallax-scrolling'
+import { BrowserFragment, CodeFragment, DiscordFragment, GameFragment } from '../components/Fragments'
+import { Arrow } from './Hero'
 import type { Project } from '../i18n/content'
 
-function Visual({ p }: { p: Project }) {
-  return (
-    <div className={`visual visual-${p.id}`} style={{ ['--accent' as string]: p.accent }} aria-hidden>
-      <span className="orb" />
-      <span className="orb orb-2" />
-      <span className="visual-grid" />
-      <span className="visual-glyph">{glyphs[p.id] ?? '◆'}</span>
-    </div>
-  )
+function Fragment({ id }: { id: Project['id'] }) {
+  if (id === 'tricapi') return <BrowserFragment domain="tricapi.com" word="tricapi" />
+  if (id === 'twobones') return <GameFragment />
+  if (id === 'web') return <CodeFragment />
+  return <DiscordFragment />
 }
-
-const glyphs: Record<string, string> = { tricapi: '△', twobones: '☠', web: '</>', bots: '⌘' }
 
 export default function Projects() {
   const { t } = useI18n()
   return (
-    <section id="projects" className="section">
-      <div className="container">
-        <Reveal><p className="kicker">{t.projects.kicker}</p></Reveal>
-        <BlurText as="h2" className="section-title" text={t.projects.title} />
-        <div className="projects">
-          {t.projects.items.map((p, i) => (
-            <Reveal key={p.id} delay={(i % 2) * 0.1} className={`project-wrap ${i === 0 ? 'featured' : ''}`}>
-              <TiltCard className="tilt">
-                <SpotlightCard className="project" color={`${p.accent}33`}>
-                  <Visual p={p} />
-                  <div className="project-body">
-                    <span className="project-tag" style={{ color: p.accent }}>{p.tag}</span>
-                    <h3>{p.title}</h3>
-                    <p>{p.description}</p>
-                    <ul className="chips">
-                      {p.stack.map(s => <li key={s}>{s}</li>)}
-                    </ul>
-                    {p.url ? (
-                      <motion.a
-                        className="project-link"
-                        href={p.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        whileHover={{ x: 4 }}
-                      >
-                        {t.projects.visit} <span aria-hidden>↗</span>
-                      </motion.a>
-                    ) : p.id === 'twobones' ? (
-                      <span className="project-soon">{t.projects.soon}</span>
-                    ) : null}
-                  </div>
-                </SpotlightCard>
-              </TiltCard>
-            </Reveal>
-          ))}
-        </div>
+    <section id="projects" className="projects">
+      <ParallaxComponent
+        title={t.projects.title}
+        image="https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1800&q=70"
+        imageAlt={t.projects.parallaxAlt}
+      />
+      <div className="section projects-body">
+      <Rise as="p" className="section-lead projects-lead">{t.projects.lead}</Rise>
+      <ol className="project-list">
+        {t.projects.items.map((p, i) => (
+          <li key={p.id} className={`project ${i % 2 ? 'is-flipped' : ''}`}>
+            <Rise className="project-media">
+              {p.url ? (
+                <a href={p.url} target="_blank" rel="noopener noreferrer" aria-label={`${t.projects.visit} ${p.title}`} tabIndex={-1}>
+                  <Fragment id={p.id} />
+                </a>
+              ) : <Fragment id={p.id} />}
+            </Rise>
+            <div className="project-text">
+              <Rise as="p" className="project-kind">{p.kind}</Rise>
+              <Heading as="h3" text={p.title} className="project-title" />
+              <Rise as="p" delay={0.08}>{p.description}</Rise>
+              <Rise as="p" delay={0.14} className="project-stack">{p.stack}</Rise>
+              <Rise delay={0.2}>
+                {p.url ? (
+                  <a className="link-arrow" href={p.url} target="_blank" rel="noopener noreferrer">
+                    {t.projects.visit} {p.title} <Arrow />
+                  </a>
+                ) : p.id === 'twobones' ? <span className="project-soon">{t.projects.soon}</span> : null}
+              </Rise>
+            </div>
+          </li>
+        ))}
+      </ol>
       </div>
     </section>
   )

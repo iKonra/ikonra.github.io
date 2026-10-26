@@ -19,3 +19,9 @@ Para agregar LinkedIn, email o el link de TwoBones Studio, completá `links` en 
 
 `.github/workflows/deploy.yml` compila y publica en GitHub Pages en cada push a `main`.
 En el repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+## Componentes
+
+- `src/components/ui/` sigue la convención de shadcn (alias `@/`). Ahí está `parallax-scrolling.tsx` (Osmo, vía 21st.dev), con GSAP ScrollTrigger.
+- `src/hooks/useLenis.ts` activa el scroll suave (Lenis) para todo el sitio.
+- `src/components/effects.tsx` tiene efectos adaptados de motion-primitives: TextScramble, Magnetic y SlidingNumber.

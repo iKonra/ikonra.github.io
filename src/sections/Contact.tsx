@@ -1,34 +1,30 @@
 import { useI18n } from '../i18n/I18nProvider'
 import { links } from '../i18n/content'
-import BlurText from '../components/BlurText'
-import Magnet from '../components/Magnet'
-import Reveal from '../components/Reveal'
+import { Heading, Rise } from '../components/motion'
+import { Arrow } from './Hero'
+import { Magnetic } from '../components/effects'
 
 export default function Contact() {
   const { t } = useI18n()
   return (
-    <section id="contact" className="section contact">
-      <div className="container narrow center">
-        <Reveal><p className="kicker">{t.contact.kicker}</p></Reveal>
-        <BlurText as="h2" className="section-title big" text={t.contact.title} />
-        <Reveal delay={0.1}><p className="contact-text">{t.contact.text}</p></Reveal>
-        <Reveal delay={0.2} className="contact-ctas">
-          <Magnet strength={0.4}>
-            <a className="btn btn-primary btn-lg" href={links.github} target="_blank" rel="noopener noreferrer">
-              {t.contact.button} ↗
-            </a>
-          </Magnet>
-          {links.linkedin && (
-            <Magnet><a className="btn btn-ghost btn-lg" href={links.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn ↗</a></Magnet>
-          )}
-          {links.email && (
-            <Magnet><a className="btn btn-ghost btn-lg" href={`mailto:${links.email}`}>Email</a></Magnet>
-          )}
-        </Reveal>
+    <section id="contact" className="contact">
+      <div className="contact-inner">
+        <Heading text={t.contact.title} className="contact-title" />
+        <div className="contact-side">
+          <Rise as="p" className="contact-text">{t.contact.text}</Rise>
+          <Rise delay={0.08} className="contact-actions">
+            <Magnetic><a className="btn btn-ink" href={links.github} target="_blank" rel="noopener noreferrer">{t.contact.button} <Arrow /></a></Magnetic>
+            {links.linkedin && <a className="link-arrow" href={links.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn <Arrow /></a>}
+            {links.email && <a className="link-arrow" href={`mailto:${links.email}`}>Email <Arrow /></a>}
+          </Rise>
+        </div>
       </div>
       <footer className="footer">
-        <span>© {new Date().getFullYear()} Conrado De Napoli</span>
-        <span>{t.contact.footer}</span>
+        <p className="footer-name" aria-hidden>Conrado De Napoli</p>
+        <div className="footer-meta">
+          <span>© {new Date().getFullYear()} Conrado De Napoli</span>
+          <span>{t.contact.footer}</span>
+        </div>
       </footer>
     </section>
   )

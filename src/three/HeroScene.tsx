@@ -1,6 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { palettes, sceneState } from './sceneState'
 
 // Simplex noise 3D (Ashima Arts, MIT)
 const noise = /* glsl */ `
@@ -93,13 +94,15 @@ function Blob({ detail }: { detail: number }) {
       uTime: { value: 0 },
       uIntensity: { value: 0.22 },
       uPointer: { value: new THREE.Vector2() },
-      uColorA: { value: new THREE.Color('#0d0826') },
-      uColorB: { value: new THREE.Color('#5a3fd6') },
-      uColorC: { value: new THREE.Color('#bfe9ff') },
+      uColorA: { value: new THREE.Color(palettes[0][0]) },
+      uColorB: { value: new THREE.Color(palettes[0][1]) },
+      uColorC: { value: new THREE.Color(palettes[0][2]) },
     }),
     [],
   )
   const { viewport } = useThree()
+  const scale = Math.min(1.15, viewport.width / 3, viewport.height / 2.9)
+  const target = useMemo(() => [new THREE.Color(), new THREE.Color(), new THREE.Color()], [])
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05)
@@ -108,16 +111,25 @@ function Blob({ detail }: { detail: number }) {
     pointer.current.lerp(state.pointer, 1 - Math.pow(0.001, dt))
     uniforms.uPointer.value.copy(pointer.current)
     const scroll = Math.min(window.scrollY / window.innerHeight, 1.5)
-    uniforms.uIntensity.value = 0.2 + Math.abs(pointer.current.x) * 0.08 + scroll * 0.2
+    // "Me aburrí": impulso que decae y transición de color hacia la paleta elegida
+    sceneState.kick = Math.max(0, sceneState.kick - dt * 1.4)
+    const k = sceneState.kick
+    const pal = palettes[sceneState.palette]
+    const mix = 1 - Math.pow(0.02, dt)
+    target[0].set(pal[0]); target[1].set(pal[1]); target[2].set(pal[2])
+    uniforms.uColorA.value.lerp(target[0], mix)
+    uniforms.uColorB.value.lerp(target[1], mix)
+    uniforms.uColorC.value.lerp(target[2], mix)
+    uniforms.uIntensity.value = 0.2 + Math.abs(pointer.current.x) * 0.08 + scroll * 0.2 + k * k * 0.35
+    uniforms.uTime.value += k * dt * 3
     if (mesh.current) {
-      mesh.current.rotation.y += dt * 0.12
+      mesh.current.rotation.y += dt * (0.12 + k * 2.2)
       mesh.current.rotation.x = pointer.current.y * 0.35 + scroll * 0.6
       mesh.current.rotation.z = pointer.current.x * 0.2
-      mesh.current.position.y = -scroll * 1.2
+      mesh.current.scale.setScalar(scale * (1 - k * (1 - k) * 0.5))
     }
   })
 
-  const scale = Math.min(1, viewport.width / 4.6)
   return (
     <mesh ref={mesh} scale={scale}>
       <icosahedronGeometry args={[1.25, detail]} />
@@ -146,7 +158,7 @@ varying float vAlpha;
 void main(){
   float d = length(gl_PointCoord - 0.5);
   float a = smoothstep(0.5, 0.0, d) * vAlpha;
-  gl_FragColor = vec4(0.75, 0.8, 1.0, a);
+  gl_FragColor = vec4(1.0, 0.93, 0.86, a * 0.8);
 }`
 
 function Particles({ count }: { count: number }) {
@@ -156,7 +168,7 @@ function Particles({ count }: { count: number }) {
     const pos = new Float32Array(count * 3)
     const sc = new Float32Array(count)
     for (let i = 0; i < count; i++) {
-      const r = 2.2 + Math.random() * 4
+      const r = 1.9 + Math.random() * 2.6
       const th = Math.random() * Math.PI * 2
       const ph = Math.acos(2 * Math.random() - 1)
       pos[i * 3] = r * Math.sin(ph) * Math.cos(th)
@@ -217,13 +229,13 @@ export default function HeroScene() {
       <Canvas
         frameloop={reduced ? 'demand' : visible ? 'always' : 'never'}
         dpr={isMobile ? [1, 1.5] : [1, 2]}
-        camera={{ position: [0, 0, 5], fov: 45 }}
+        camera={{ position: [0, 0, 4.6], fov: 45 }}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         eventSource={document.body}
         eventPrefix="client"
       >
         <Blob detail={isMobile ? 24 : 48} />
-        <Particles count={isMobile ? 500 : 1400} />
+        <Particles count={isMobile ? 260 : 600} />
       </Canvas>
     </div>
   )

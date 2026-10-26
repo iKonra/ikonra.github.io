@@ -1,14 +1,15 @@
 import { motion } from 'motion/react'
+import { ease } from './motion'
 
-type Props = { text: string; className?: string; delay?: number; stagger?: number }
+type Props = { text: string; delay?: number; stagger?: number }
 
-/** Letra por letra, inspirado en React Bits <SplitText />. */
-export default function SplitText({ text, className, delay = 0, stagger = 0.035 }: Props) {
-  const words = text.split(' ')
+/** Letras que suben desde una máscara, inspirado en React Bits <SplitText />. */
+export default function SplitText({ text, delay = 0, stagger = 0.03 }: Props) {
   let i = 0
   return (
-    <span className={className} aria-label={text}>
-      {words.map((word, wi) => (
+    <>
+      <span className="sr-only">{text}</span>
+      {text.split(' ').map((word, wi) => (
         <span key={wi} className="split-word" aria-hidden>
           {[...word].map(ch => {
             const idx = i++
@@ -16,17 +17,16 @@ export default function SplitText({ text, className, delay = 0, stagger = 0.035 
               <motion.span
                 key={idx}
                 className="split-char"
-                initial={{ y: '110%', opacity: 0, rotate: 8 }}
-                animate={{ y: '0%', opacity: 1, rotate: 0 }}
-                transition={{ delay: delay + idx * stagger, type: 'spring', stiffness: 260, damping: 22 }}
+                initial={{ y: '105%' }}
+                animate={{ y: '0%' }}
+                transition={{ delay: delay + idx * stagger, duration: 0.9, ease: ease.out }}
               >
                 {ch}
               </motion.span>
             )
           })}
-          {wi < words.length - 1 && ' '}
         </span>
       ))}
-    </span>
+    </>
   )
 }
