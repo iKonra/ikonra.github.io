@@ -1,9 +1,11 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { motion, useScroll, useTransform } from 'motion/react'
+import { motion } from 'motion/react'
+import { ArrowUpRight } from 'lucide-react'
 import { useI18n } from '../i18n/I18nProvider'
 import SplitText from '../components/SplitText'
-import RotatingText from '../components/RotatingText'
-import Magnet from '../components/Magnet'
+import { ease } from '../components/motion'
+import { bore } from '../three/sceneState'
+import { Magnetic, SlidingNumber, TextScramble } from '../components/effects'
 
 const HeroScene = lazy(() => import('../three/HeroScene'))
 
@@ -13,67 +15,67 @@ function supportsWebGL() {
     return !!(c.getContext('webgl2') || c.getContext('webgl'))
   } catch { return false }
 }
-const webgl = typeof window !== 'undefined' && supportsWebGL()
 
 export default function Hero() {
   const { t, lang } = useI18n()
-  const { scrollY } = useScroll()
-  const y = useTransform(scrollY, [0, 600], [0, -120])
-  const opacity = useTransform(scrollY, [0, 450], [1, 0])
-  // Montar la escena 3D recién cuando el navegador está libre, así el texto aparece primero
+  const [count, setCount] = useState(0)
+  const [idea, setIdea] = useState<number | null>(null)
+
+  // La escena 3D se monta cuando el navegador queda libre, así el texto aparece primero
   const [show3D, setShow3D] = useState(false)
   useEffect(() => {
-    if (!webgl) return
+    if (!supportsWebGL()) return
     const ric = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200))
     const id = ric(() => setShow3D(true), { timeout: 1200 })
     return () => (window.cancelIdleCallback ?? clearTimeout)(id)
   }, [])
 
+  const getBored = () => {
+    const n = t.hero.ideas.length
+    let next = Math.floor(Math.random() * n)
+    if (next === idea) next = (next + 1) % n
+    setIdea(next)
+    setCount(c => c + 1)
+    bore(count + 1)
+  }
+
+  const fade = (delay: number) => ({
+    initial: { opacity: 0, y: 16 },
+    animate: { opacity: 1, y: 0 },
+    transition: { delay, duration: 0.8, ease: ease.out },
+  })
+
   return (
     <section id="top" className="hero">
-      <div className="hero-glow" aria-hidden />
-      {show3D && (
-        <Suspense fallback={null}>
-          <HeroScene />
-        </Suspense>
-      )}
-      <motion.div className="hero-content" style={{ y, opacity }}>
-        <motion.p
-          className="hero-hello"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <span className="dot" /> {t.hero.hello}
-        </motion.p>
+      <div className="hero-text">
         <h1 className="hero-name">
-          <SplitText key={lang} text={t.hero.name} delay={0.2} />
+          <SplitText key={lang} text={t.hero.name} delay={0.1} />
         </h1>
-        <div className="hero-role">
-          <RotatingText items={t.hero.roles} />
-        </div>
-        <motion.p
-          key={`tag-${lang}`}
-          className="hero-tagline"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9, duration: 0.6 }}
-        >
-          {t.hero.tagline}
-        </motion.p>
-        <motion.div
-          className="hero-ctas"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.1, duration: 0.6 }}
-        >
-          <Magnet><a href="#projects" className="btn btn-primary">{t.hero.cta}</a></Magnet>
-          <Magnet><a href="#contact" className="btn btn-ghost">{t.hero.cta2}</a></Magnet>
+        <motion.p key={`lead-${lang}`} className="hero-lead" {...fade(0.6)}>{t.hero.lead}</motion.p>
+        <motion.div className="hero-actions" {...fade(0.75)}>
+          <Magnetic>
+            <button className="btn btn-accent" onClick={getBored}>
+              {count === 0 ? t.hero.bored : t.hero.boredAgain}
+              {count > 0 && <span className="btn-count">×<SlidingNumber value={count} /></span>}
+            </button>
+          </Magnetic>
+          <a href="#projects" className="link-arrow">{t.hero.projects} <Arrow /></a>
         </motion.div>
-      </motion.div>
-      <motion.a href="#about" className="scroll-hint" style={{ opacity }} aria-label={t.hero.scroll}>
-        <span className="mouse"><span className="wheel" /></span>
-      </motion.a>
+        <p className="hero-idea" aria-live="polite">
+          {idea !== null && <TextScramble key={count} text={`${t.hero.then} ${t.hero.ideas[idea]}`} />}
+        </p>
+      </div>
+      <div className="hero-stage" aria-hidden>
+        {show3D && (
+          <Suspense fallback={null}>
+            <HeroScene />
+          </Suspense>
+        )}
+      </div>
     </section>
   )
+}
+
+export function Arrow() {
+  return <ArrowUpRight className="arrow" size={16} strokeWidth={2} aria-hidden />
 }

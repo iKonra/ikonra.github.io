@@ -20,7 +20,7 @@ export default function ScrollVelocity({ text, baseVelocity = 3 }: { text: strin
   })
 
   return (
-    <div className="velocity">
+    <div className="velocity" aria-hidden>
       <motion.div className="velocity-track" style={{ x }}>
         {[0, 1, 2, 3].map(i => <span key={i}>{text}&nbsp;</span>)}
       </motion.div>
