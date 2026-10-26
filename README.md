@@ -17,8 +17,12 @@ Para agregar LinkedIn, email o el link de TwoBones Studio, completá `links` en 
 
 ## Deploy
 
-`.github/workflows/deploy.yml` compila y publica en GitHub Pages en cada push a `main`.
-En el repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+```bash
+npm run deploy
+```
+
+Compila y sube `dist/` a la rama `gh-pages`. En el repo: **Settings → Pages → Source: Deploy from a branch → `gh-pages` / root**.
+El workflow de Actions (`.github/workflows/deploy.yml`) queda como alternativa manual.
 
 ## Componentes
 

@@ -1,8 +1,7 @@
 name: Deploy to GitHub Pages
 
+# Manual: el sitio se publica desde la rama gh-pages con `npm run deploy`
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
