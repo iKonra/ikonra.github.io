@@ -1,4 +1,4 @@
-import{r as i,j as n,p,s as f}from"./index-Cc6wPqi8.js";import{C as b,V as w,a as x,u as g,b as z,A as M}from"./react-three-fiber.esm-DzxcQo4H.js";const C=`
+import{r as i,j as n,p,s as f}from"./index-DOzmRovs.js";import{C as b,V as w,a as x,u as g,b as z,A as M}from"./react-three-fiber.esm-DxxgCKeR.js";const C=`
 vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
 vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
 vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
