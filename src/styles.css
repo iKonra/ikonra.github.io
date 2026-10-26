@@ -276,15 +276,13 @@ html.lenis, html.lenis body { height: auto; }
 .parallax__layers { position: absolute; inset: 0; }
 .parallax__layer-img, .parallax__layer-title { position: absolute; inset: 0; width: 100%; height: 118%; top: -9%; will-change: transform; }
 .parallax__layer-img { object-fit: cover; pointer-events: none; }
-img.parallax__layer-img { filter: saturate(0.75) brightness(0.7); }
-.parallax__ridge { fill: #1d1b18; }
-.parallax__ridge--front { fill: var(--ground); }
-.parallax__layer-title { display: grid; place-items: center; }
+img.parallax__layer-img { object-position: 55% 60%; }
+.parallax__layer-title { display: grid; place-items: start center; padding-top: 16vh; }
 .parallax__title {
   font-size: clamp(4.25rem, 17vw, 16rem); line-height: 0.85; letter-spacing: -0.06em; font-weight: 800;
-  color: var(--ink); text-align: center; padding-bottom: 12vh;
+  color: var(--ink); text-align: center;
 }
-.parallax__fade { position: absolute; inset: auto 0 0; height: 20%; background: linear-gradient(transparent, var(--ground)); pointer-events: none; }
+.parallax__fade { position: absolute; inset: auto 0 0; height: 30%; background: linear-gradient(transparent, var(--ground)); pointer-events: none; }
 .projects-body { padding-top: 24px; }
 .projects-lead { font-size: clamp(1.4rem, 2.6vw, 2.25rem); line-height: 1.2; letter-spacing: -0.02em; font-weight: 600; max-width: 24ch; }
 @media (max-width: 860px) { .parallax__header { height: 78svh; min-height: 460px; } }

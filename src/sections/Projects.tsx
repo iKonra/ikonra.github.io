@@ -18,7 +18,8 @@ export default function Projects() {
     <section id="projects" className="projects">
       <ParallaxComponent
         title={t.projects.title}
-        image="https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1800&q=70"
+        image="/images/saturn-2000.webp"
+        imageSrcSet="/images/saturn-1000.webp 1000w, /images/saturn-2000.webp 2000w"
         imageAlt={t.projects.parallaxAlt}
       />
       <div className="section projects-body">

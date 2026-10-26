@@ -52,7 +52,7 @@ const es = {
   projects: {
     title: 'Proyectos',
     lead: 'Cosas que construí, casi todas porque me aburría.',
-    parallaxAlt: 'Montañas nevadas bajo un cielo estrellado',
+    parallaxAlt: 'Saturno y sus anillos sobre un cielo estrellado',
     visit: 'Visitar',
     soon: 'Web en camino',
     items: [
@@ -155,7 +155,7 @@ const en: Dict = {
   projects: {
     title: 'Projects',
     lead: 'Things I built, most of them because I was bored.',
-    parallaxAlt: 'Snowy mountains under a starry sky',
+    parallaxAlt: 'Saturn and its rings against a starry sky',
     visit: 'Visit',
     soon: 'Site coming soon',
     items: [
