@@ -19,13 +19,6 @@ export default function Contact() {
           </Rise>
         </div>
       </div>
-      <footer className="footer">
-        <p className="footer-name" aria-hidden>Conrado De Napoli</p>
-        <div className="footer-meta">
-          <span>© {new Date().getFullYear()} Conrado De Napoli</span>
-          <span>{t.contact.footer}</span>
-        </div>
-      </footer>
     </section>
   )
 }

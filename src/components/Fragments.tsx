@@ -113,7 +113,7 @@ export function DiscordFragment() {
       <div className="dc-body">
         {d.history.map(([who, text], i) => (
           <div key={i} className="dc-msg">
-            <span className={`dc-avatar ${who === d.user ? 'dc-avatar-user' : 'dc-avatar-other'}`}>{who[0].toUpperCase()}</span>
+            <span className={`dc-avatar ${who === 'conra' ? 'dc-avatar-user' : 'dc-avatar-other'}`}>{who[0].toUpperCase()}</span>
             <div>
               <span className="dc-name">{who}</span>
               <p>{text}</p>
@@ -122,7 +122,7 @@ export function DiscordFragment() {
         ))}
         {step >= 1 && (
           <motion.div className="dc-msg" {...msg}>
-            <span className="dc-avatar dc-avatar-user">C</span>
+            <span className="dc-avatar dc-avatar-other">{d.user[0].toUpperCase()}</span>
             <div>
               <span className="dc-name">{d.user}</span>
               <p className="dc-cmd">{d.command}</p>
@@ -131,7 +131,7 @@ export function DiscordFragment() {
         )}
         {step >= 3 && (
           <motion.div className="dc-msg" {...msg}>
-            <span className="dc-avatar dc-avatar-bot">B</span>
+            <span className="dc-avatar dc-avatar-bot">{d.bot[0]}</span>
             <div>
               <span className="dc-name">{d.bot} <span className="dc-badge">BOT</span></span>
               <p>{d.reply}</p>

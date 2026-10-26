@@ -8,12 +8,14 @@ import Skills from './sections/Skills'
 import Journey from './sections/Journey'
 import Contact from './sections/Contact'
 import { useLenis } from '@/hooks/useLenis'
+import Cursor from './components/Cursor'
 
 export default function App() {
   useLenis()
   return (
     <I18nProvider>
       <MotionConfig reducedMotion="user">
+        <Cursor />
         <Nav />
         <main>
           <Hero />

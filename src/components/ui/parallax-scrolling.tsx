@@ -7,6 +7,7 @@ gsap.registerPlugin(ScrollTrigger)
 
 type Props = {
   title: string
+  subtitle?: string
   image: string
   imageSrcSet?: string
   imageAlt?: string
@@ -17,7 +18,7 @@ const layers = [
   { layer: '3', yPercent: 70 },
 ]
 
-export function ParallaxComponent({ title, image, imageSrcSet, imageAlt = '' }: Props) {
+export function ParallaxComponent({ title, subtitle, image, imageSrcSet, imageAlt = '' }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -43,6 +44,7 @@ export function ParallaxComponent({ title, image, imageSrcSet, imageAlt = '' }: 
             <img src={image} srcSet={imageSrcSet} sizes="100vw" alt={imageAlt} loading="lazy" decoding="async" data-parallax-layer="1" className="parallax__layer-img" />
             <div data-parallax-layer="3" className="parallax__layer-title">
               <h2 className="parallax__title">{title}</h2>
+              {subtitle && <p className="parallax__subtitle">{subtitle}</p>}
             </div>
           </div>
           <div className="parallax__fade" />
