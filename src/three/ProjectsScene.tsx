@@ -152,10 +152,10 @@ function Rig() {
       g.visible = w > 0.002
       if (!g.visible) return
       g.scale.setScalar(base * (0.2 + 0.8 * w) * w)
-      g.position.x = -d * 1.6
+      g.position.y = d * 2.2
       g.position.y = Math.sin(state.clock.elapsedTime * 0.8 + i) * 0.08
       g.rotation.y += dt * 0.35
-      g.rotation.x = d * 1.4
+      g.rotation.x = -d * 1.6
     })
   })
 

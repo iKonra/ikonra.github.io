@@ -58,9 +58,10 @@ const code: [string, string][][] = [
 ]
 
 /** Fragmento de código real, línea por línea al entrar en pantalla. */
-export function CodeFragment() {
+export function CodeFragment({ play = true }: { play?: boolean }) {
   const ref = useRef<HTMLPreElement>(null)
-  const inView = useInView(ref, { once: true, margin: '0px 0px -15% 0px' })
+  const seen = useInView(ref, { once: true, margin: '0px 0px -15% 0px' })
+  const inView = seen && play
   return (
     <div className="frag frag-code" data-ui>
       <div className="code-tab">api/orders/route.ts</div>
@@ -86,11 +87,15 @@ export function CodeFragment() {
 }
 
 /** Conversación de Discord: el comando, el bot escribiendo y su respuesta. */
-export function DiscordFragment() {
+export function DiscordFragment({ play = true }: { play?: boolean }) {
   const { t, lang } = useI18n()
   const d = t.projects.discord
   const ref = useRef<HTMLDivElement>(null)
-  const inView = useInView(ref, { once: true, margin: '0px 0px -20% 0px' })
+  const seen = useInView(ref, { once: true, margin: '0px 0px -20% 0px' })
+  // Una vez que arrancó la conversación, no se corta aunque el panel deje de estar activo
+  const [started, setStarted] = useState(false)
+  if (seen && play && !started) setStarted(true)
+  const inView = started
   const [step, setStep] = useState(0)
 
   useEffect(() => {

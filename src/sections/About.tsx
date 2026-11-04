@@ -17,19 +17,18 @@ export default function About() {
   const words = t.about.statement.split(' ')
   const factsOpacity = useTransform(scrollYProgress, [0.68, 0.82], [0, 1])
   const factsY = useTransform(scrollYProgress, [0.68, 0.82], [40, 0])
-  const titleX = useTransform(scrollYProgress, [0, 1], ['0%', '-18%'])
+  const scale = useTransform(scrollYProgress, [0, 0.7], [0.94, 1])
 
   return (
     <section id="about" ref={ref} className="pin about-pin">
       <div className="pin-sticky about-sticky">
-        <motion.h2 className="about-ghost" style={{ x: titleX }} aria-hidden>{t.about.title} · {t.about.title} ·</motion.h2>
-        <h2 className="sr-only">{t.about.title}</h2>
-        <p className="reveal" aria-label={t.about.statement}>
+        <h2 className="about-label">{t.about.title}</h2>
+        <motion.p className="reveal" aria-label={t.about.statement} style={{ scale }}>
           {words.map((w, i) => {
             const start = (i / words.length) * 0.6
             return <Word key={`${w}-${i}`} progress={scrollYProgress} range={[start, start + 0.6 / words.length + 0.04]}>{w}</Word>
           })}
-        </p>
+        </motion.p>
         <motion.dl className="facts-row" style={{ opacity: factsOpacity, y: factsY }}>
           {t.about.facts.map(([k, v]) => (
             <div key={k} className="fact">

@@ -16,8 +16,8 @@ export type Project = {
   id: 'tricapi' | 'twobones' | 'web' | 'bots'
   title: string
   kind: string
-  description: string
   stack: string
+  description: string
   url?: string
 }
 
@@ -103,7 +103,6 @@ const es = {
     },
     game: { start: 'Presioná start' },
   },
-  stack: 'TypeScript · React · Node.js · Next.js · Three.js · Python · C# · discord.js · SQL · Docker ·',
   journey: {
     title: 'Trayectoria',
     items: [
@@ -206,7 +205,6 @@ const en: Dict = {
     },
     game: { start: 'Press start' },
   },
-  stack: es.stack,
   journey: {
     title: 'Journey',
     items: [
