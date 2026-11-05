@@ -5,22 +5,15 @@ import * as THREE from 'three'
 // Lo que hay en el espacio alrededor del recorrido de la cámara: planetas que pasan al costado,
 // estrellas fugaces y líneas de "warp" que aparecen cuando scrolleás rápido.
 
-const noiseGlsl = /* glsl */ `
-float hash(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
-float vnoise(vec3 x){
-  vec3 i = floor(x); vec3 f = fract(x); f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x), mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
-             mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
-}
-float fbm(vec3 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { v += a * vnoise(p); p *= 2.03; a *= 0.5; } return v; }
-`
+// Luz de una estrella lejana, arriba a la izquierda
+const LIGHT = new THREE.Vector3(-0.6, 0.45, 0.65).normalize()
 
 const planetVertex = /* glsl */ `
+varying vec2 vUv;
 varying vec3 vNormal;
-varying vec3 vPos;
 varying vec3 vView;
 void main(){
-  vPos = position;
+  vUv = uv;
   vec4 world = modelMatrix * vec4(position, 1.0);
   vNormal = normalize(mat3(modelMatrix) * normal);
   vView = normalize(cameraPosition - world.xyz);
@@ -28,124 +21,174 @@ void main(){
 }`
 
 const planetFragment = /* glsl */ `
-uniform vec3 uA;
-uniform vec3 uB;
-uniform vec3 uC;
+uniform sampler2D uMap;
+uniform vec3 uLight;
 uniform vec3 uAtmo;
-uniform float uBands;
-uniform float uCraters;
-uniform float uTime;
+uniform float uAtmoStrength;
 uniform float uFade;
+varying vec2 vUv;
 varying vec3 vNormal;
-varying vec3 vPos;
 varying vec3 vView;
-${noiseGlsl}
 void main(){
-  vec3 n = normalize(vPos);
-  float turb = fbm(n * 3.0 + vec3(uTime * 0.02, 0.0, 0.0));
-  // Bandas de gigante gaseoso o superficie con cráteres
-  float bands = sin(n.y * uBands + turb * 4.0) * 0.5 + 0.5;
-  vec3 col = mix(uA, uB, bands);
-  col = mix(col, uC, smoothstep(0.55, 0.8, fbm(n * 6.0)) * 0.6);
-  float crater = smoothstep(0.62, 0.7, fbm(n * 9.0)) * uCraters;
-  col *= 1.0 - crater * 0.45;
-  // Luz de una estrella lejana, con terminador suave
-  vec3 L = normalize(vec3(-0.6, 0.45, 0.65));
-  float lit = smoothstep(-0.15, 0.6, dot(vNormal, L));
-  float fres = pow(1.0 - max(dot(vNormal, vView), 0.0), 3.0);
-  col = col * (0.06 + lit * 1.05) + uAtmo * fres * (0.25 + lit * 0.9);
+  vec3 tex = texture2D(uMap, vUv).rgb;
+  float ndl = dot(normalize(vNormal), uLight);
+  float day = smoothstep(-0.12, 0.45, ndl);
+  float fres = pow(1.0 - max(dot(normalize(vNormal), vView), 0.0), 2.5);
+  vec3 col = tex * (0.025 + day * 1.15);
+  // Atmósfera: borde iluminado del lado del sol
+  col += uAtmo * fres * uAtmoStrength * smoothstep(-0.3, 0.6, ndl);
   gl_FragColor = vec4(col, uFade);
 }`
 
+const cloudFragment = /* glsl */ `
+uniform sampler2D uMap;
+uniform vec3 uLight;
+uniform float uFade;
+varying vec2 vUv;
+varying vec3 vNormal;
+varying vec3 vView;
+void main(){
+  float a = texture2D(uMap, vUv).r;
+  float day = smoothstep(-0.1, 0.5, dot(normalize(vNormal), uLight));
+  gl_FragColor = vec4(vec3(1.0) * (0.03 + day), a * 0.85 * uFade);
+}`
+
+const glowFragment = /* glsl */ `
+uniform vec3 uAtmo;
+uniform vec3 uLight;
+uniform float uFade;
+varying vec2 vUv;
+varying vec3 vNormal;
+varying vec3 vView;
+void main(){
+  // Halo exterior: se dibuja la cara de atrás de una esfera un poco más grande;
+  // brilla pegado al borde del planeta y se apaga hacia afuera
+  float rim = pow(clamp(-dot(normalize(vNormal), vView), 0.0, 1.0), 2.0) * 2.2;
+  float lit = smoothstep(-0.4, 0.7, dot(normalize(vNormal), uLight));
+  gl_FragColor = vec4(uAtmo, rim * lit * uFade);
+}`
+
 const ringVertex = /* glsl */ `
+varying vec3 vWorld;
 varying vec2 vXY;
-void main(){ vXY = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`
+void main(){
+  vXY = position.xy;
+  vec4 w = modelMatrix * vec4(position, 1.0);
+  vWorld = w.xyz;
+  gl_Position = projectionMatrix * viewMatrix * w;
+}`
 
 const ringFragment = /* glsl */ `
+uniform sampler2D uMap;
 uniform float uInner;
 uniform float uOuter;
-uniform vec3 uColor;
+uniform vec3 uLight;
+uniform vec3 uCenter;
+uniform float uRadius;
 uniform float uFade;
+varying vec3 vWorld;
 varying vec2 vXY;
-${noiseGlsl}
 void main(){
   float r = (length(vXY) - uInner) / (uOuter - uInner);
-  float bands = vnoise(vec3(r * 40.0, 0.0, 0.0)) * 0.6 + vnoise(vec3(r * 140.0, 3.0, 0.0)) * 0.4;
-  float gap = smoothstep(0.52, 0.55, r) * (1.0 - smoothstep(0.58, 0.61, r));
-  float a = smoothstep(0.0, 0.08, r) * (1.0 - smoothstep(0.9, 1.0, r)) * (0.35 + bands * 0.65) * (1.0 - gap * 0.9);
-  gl_FragColor = vec4(uColor * (0.6 + bands * 0.6), a * 0.8 * uFade);
+  vec4 t = texture2D(uMap, vec2(r, 0.5));
+  // Sombra del planeta sobre los anillos: ¿el rayo hacia el sol choca con la esfera?
+  vec3 oc = vWorld - uCenter;
+  float b = dot(oc, uLight);
+  float c = dot(oc, oc) - uRadius * uRadius;
+  float shadow = (b < 0.0 && b * b - c > 0.0) ? 0.12 : 1.0;
+  gl_FragColor = vec4(t.rgb * (0.25 + 0.95 * shadow), t.a * uFade);
 }`
 
 type PlanetSpec = {
   pos: [number, number, number]
   r: number
-  colors: [string, string, string, string]
-  bands: number
-  craters: number
-  ring?: { inner: number; outer: number; color: string; tilt: [number, number, number] }
+  map: string
+  atmo: string
+  atmoStrength: number
+  tilt: number
   spin: number
+  clouds?: string
+  ring?: { inner: number; outer: number; map: string; tilt: [number, number, number] }
 }
 
 const planets: PlanetSpec[] = [
-  // Gigante gaseoso naranja: se ve desde el inicio y pasa en "Sobre mí"
-  { pos: [6.8, -3.6, -16], r: 2.8, colors: ['#8a3a17', '#f0b27a', '#ff5a1f', '#ffb27a'], bands: 22, craters: 0, spin: 0.03 },
-  // Planeta helado con anillos: aparece en "Trayectoria"
-  { pos: [-6.2, 2.6, -40], r: 1.7, colors: ['#1e3d7a', '#9fc4ff', '#e9f2ff', '#7fb0ff'], bands: 12, craters: 0, spin: 0.05,
-    ring: { inner: 2.3, outer: 3.8, color: '#cfe0ff', tilt: [1.25, 0.25, 0.3] } },
-  // Luna gris con cráteres, cerca del final
-  { pos: [3.4, 2.6, -55], r: 0.85, colors: ['#4a4744', '#a6a19a', '#d8d2c8', '#f3efe7'], bands: 2, craters: 1, spin: 0.08 },
+  // Gigante gaseoso: se ve en "Sobre mí"
+  { pos: [6.8, -3.6, -16], r: 2.8, map: '/textures/gas-giant.webp', atmo: '#ffc9a0', atmoStrength: 0.5, tilt: 0.12, spin: 0.025 },
+  // Planeta con anillos: aparece en "Trayectoria"
+  { pos: [-6.2, 2.6, -40], r: 1.7, map: '/textures/ringed.webp', atmo: '#ffe7b8', atmoStrength: 0.35, tilt: 0.45, spin: 0.04,
+    ring: { inner: 2.2, outer: 4.0, map: '/textures/rings.png', tilt: [1.2, 0.2, 0.35] } },
+  // La Tierra (NASA) pasa por abajo en el contacto
+  { pos: [5.6, -3.4, -48], r: 1.5, map: '/textures/earth.webp', atmo: '#5aa8ff', atmoStrength: 1.1, tilt: 0.41, spin: 0.05, clouds: '/textures/earth-clouds.webp' },
+  // Y la Luna (NASA), arriba
+  { pos: [3.4, 2.7, -56], r: 0.7, map: '/textures/moon.webp', atmo: '#ffffff', atmoStrength: 0.08, tilt: 0.1, spin: 0.03 },
 ]
 
+const loader = new THREE.TextureLoader()
+function loadTex(url: string) {
+  const t = loader.load(url)
+  t.colorSpace = THREE.SRGBColorSpace
+  t.anisotropy = 4
+  return t
+}
+
 function Planet({ spec, xScale }: { spec: PlanetSpec; xScale: number }) {
-  const ref = useRef<THREE.Group>(null)
-  const mat = useMemo(
-    () => new THREE.ShaderMaterial({
-      vertexShader: planetVertex,
-      fragmentShader: planetFragment,
-      uniforms: {
-        uA: { value: new THREE.Color(spec.colors[0]) },
-        uB: { value: new THREE.Color(spec.colors[1]) },
-        uC: { value: new THREE.Color(spec.colors[2]) },
-        uAtmo: { value: new THREE.Color(spec.colors[3]) },
-        uBands: { value: spec.bands },
-        uCraters: { value: spec.craters },
-        uTime: { value: 0 },
-        uFade: { value: 0 },
-      },
-      transparent: true,
-    }),
-    [spec],
-  )
-  const ringMat = useMemo(
-    () => spec.ring && new THREE.ShaderMaterial({
-      vertexShader: ringVertex,
-      fragmentShader: ringFragment,
-      uniforms: { uInner: { value: spec.ring.inner }, uOuter: { value: spec.ring.outer }, uColor: { value: new THREE.Color(spec.ring.color) }, uFade: { value: 0 } },
-      transparent: true,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    }),
-    [spec],
-  )
   const root = useRef<THREE.Group>(null)
+  const body = useRef<THREE.Mesh>(null)
+  const cloud = useRef<THREE.Mesh>(null)
   const { camera } = useThree()
+
+  const mats = useMemo(() => {
+    const atmo = new THREE.Color(spec.atmo)
+    const planet = new THREE.ShaderMaterial({
+      vertexShader: planetVertex, fragmentShader: planetFragment, transparent: true,
+      uniforms: { uMap: { value: loadTex(spec.map) }, uLight: { value: LIGHT }, uAtmo: { value: atmo }, uAtmoStrength: { value: spec.atmoStrength }, uFade: { value: 0 } },
+    })
+    const glow = new THREE.ShaderMaterial({
+      vertexShader: planetVertex, fragmentShader: glowFragment, transparent: true, side: THREE.BackSide,
+      depthWrite: false, blending: THREE.AdditiveBlending,
+      uniforms: { uAtmo: { value: atmo }, uLight: { value: LIGHT }, uFade: { value: 0 } },
+    })
+    const clouds = spec.clouds ? new THREE.ShaderMaterial({
+      vertexShader: planetVertex, fragmentShader: cloudFragment, transparent: true, depthWrite: false,
+      uniforms: { uMap: { value: loader.load(spec.clouds) }, uLight: { value: LIGHT }, uFade: { value: 0 } },
+    }) : null
+    const ring = spec.ring ? new THREE.ShaderMaterial({
+      vertexShader: ringVertex, fragmentShader: ringFragment, transparent: true, side: THREE.DoubleSide, depthWrite: false,
+      uniforms: {
+        uMap: { value: loadTex(spec.ring.map) }, uInner: { value: spec.ring.inner }, uOuter: { value: spec.ring.outer },
+        uLight: { value: LIGHT }, uCenter: { value: new THREE.Vector3() }, uRadius: { value: spec.r }, uFade: { value: 0 },
+      },
+    }) : null
+    return { planet, glow, clouds, ring }
+  }, [spec])
+
   useFrame((_, delta) => {
     // Aparece recién cuando la cámara se acerca, así de lejos no se cruza con los títulos
     const d = camera.position.z - spec.pos[2]
     const fade = THREE.MathUtils.smoothstep(22 - d, 0, 6)
-    mat.uniforms.uFade.value = fade
-    if (ringMat) ringMat.uniforms.uFade.value = fade
-    if (root.current) root.current.visible = fade > 0.001 && d > -2
-    mat.uniforms.uTime.value += delta
-    if (ref.current) ref.current.rotation.y += delta * spec.spin
+    const show = fade > 0.001 && d > -2
+    if (root.current) root.current.visible = show
+    if (!show) return
+    mats.planet.uniforms.uFade.value = fade
+    mats.glow.uniforms.uFade.value = fade
+    if (mats.clouds) mats.clouds.uniforms.uFade.value = fade
+    if (mats.ring) {
+      mats.ring.uniforms.uFade.value = fade
+      root.current!.getWorldPosition(mats.ring.uniforms.uCenter.value)
+    }
+    if (body.current) body.current.rotation.y += delta * spec.spin
+    if (cloud.current) cloud.current.rotation.y += delta * spec.spin * 1.4
   })
+
   return (
     <group ref={root} position={[spec.pos[0] * xScale, spec.pos[1], spec.pos[2]]}>
-      <group ref={ref}>
-        <mesh material={mat}><sphereGeometry args={[spec.r, 64, 48]} /></mesh>
+      <group rotation={[0, 0, spec.tilt]}>
+        <mesh ref={body} material={mats.planet}><sphereGeometry args={[spec.r, 96, 64]} /></mesh>
+        {mats.clouds && <mesh ref={cloud} material={mats.clouds}><sphereGeometry args={[spec.r * 1.012, 96, 64]} /></mesh>}
       </group>
-      {spec.ring && ringMat && (
-        <mesh rotation={spec.ring.tilt} material={ringMat}><ringGeometry args={[spec.ring.inner, spec.ring.outer, 160, 1]} /></mesh>
+      <mesh material={mats.glow}><sphereGeometry args={[spec.r * 1.16, 64, 48]} /></mesh>
+      {spec.ring && mats.ring && (
+        <mesh rotation={spec.ring.tilt} material={mats.ring}><ringGeometry args={[spec.ring.inner, spec.ring.outer, 192, 1]} /></mesh>
       )}
     </group>
   )

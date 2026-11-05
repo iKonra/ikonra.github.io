@@ -29,3 +29,8 @@ El workflow de Actions (`.github/workflows/deploy.yml`) queda como alternativa m
 - `src/components/ui/` sigue la convención de shadcn (alias `@/`). Ahí está `parallax-scrolling.tsx` (Osmo, vía 21st.dev), con GSAP ScrollTrigger.
 - `src/hooks/useLenis.ts` activa el scroll suave (Lenis) para todo el sitio.
 - `src/components/effects.tsx` tiene efectos adaptados de motion-primitives: TextScramble, Magnetic y SlidingNumber.
+
+## Créditos de imágenes
+
+- Tierra, nubes y Luna (`public/textures/earth*.webp`, `moon.webp`): NASA, dominio público, tomadas de los ejemplos de three.js.
+- Gigante gaseoso, planeta con anillos, anillos y nebulosa: generadas para este sitio.
