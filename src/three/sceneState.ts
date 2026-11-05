@@ -11,10 +11,10 @@ export const palettes = [
 export const SHAPES = 6
 
 /** shape: figura del hero; kick: impulso del botón "Me aburrí", decae solo. */
-export const sceneState = { palette: 0, shape: 0, kick: 0 }
+export const sceneState = { palette: 0, shape: 4, kick: 0 }
 
 export function bore(index: number) {
   sceneState.palette = index % palettes.length
-  sceneState.shape = index % SHAPES
+  sceneState.shape = (4 + index) % SHAPES
   sceneState.kick = 1
 }

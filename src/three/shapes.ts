@@ -64,36 +64,43 @@ const helix: Gen = n => {
   return out
 }
 
-const wave: Gen = n => {
+const ringed: Gen = n => {
   const out = new Float32Array(n * 3)
-  const side = Math.ceil(Math.sqrt(n))
+  const golden = Math.PI * (3 - Math.sqrt(5))
+  const body = Math.floor(n * 0.55)
   for (let i = 0; i < n; i++) {
-    const x = ((i % side) / side - 0.5) * 3
-    const z = (Math.floor(i / side) / side - 0.5) * 3
-    const y = Math.sin(x * 2.2) * Math.cos(z * 2.2) * 0.35
-    out.set([x, y, z], i * 3)
-  }
-  return out
-}
-
-const atom: Gen = n => {
-  const out = new Float32Array(n * 3)
-  const tilts = [0, Math.PI / 3, -Math.PI / 3]
-  for (let i = 0; i < n; i++) {
-    if (i % 5 === 0) {
-      // Núcleo
-      const v = [rnd(), rnd(), rnd()]
-      const l = Math.hypot(...v) || 1
-      const r = Math.cbrt(Math.random()) * 0.32
-      out.set(v.map(c => (c / l) * r), i * 3)
-      continue
+    if (i < body) {
+      // Planeta
+      const y = 1 - (i / (body - 1)) * 2
+      const r = Math.sqrt(1 - y * y), th = golden * i, R = 0.8
+      out.set([Math.cos(th) * r * R, y * R, Math.sin(th) * r * R], i * 3)
+    } else {
+      // Anillos, con un hueco como la división de Cassini
+      let rr = 1.1 + Math.random() * 0.75
+      if (rr > 1.45 && rr < 1.52) rr += 0.08
+      const a = Math.random() * TAU
+      out.set([Math.cos(a) * rr, rnd(0.03), Math.sin(a) * rr], i * 3)
     }
-    // Cada órbita es un círculo en el plano xz girado sobre el eje z
-    const t = tilts[i % 3], a = Math.random() * TAU, R = 1.35 + rnd(0.05)
-    const px = Math.cos(a) * R, pz = Math.sin(a) * R
-    out.set([px * Math.cos(t), px * Math.sin(t), pz], i * 3)
   }
   return out
 }
 
-export const shapes: Gen[] = [sphere, knot, galaxy, helix, wave, atom]
+const blackHole: Gen = n => {
+  const out = new Float32Array(n * 3)
+  for (let i = 0; i < n; i++) {
+    if (i % 4 === 0) {
+      // Anillo de fotones que rodea el horizonte, de canto a la cámara
+      const a = Math.random() * TAU, R = 0.62 + rnd(0.04)
+      out.set([Math.cos(a) * R, Math.sin(a) * R, rnd(0.03)], i * 3)
+    } else {
+      // Disco de acreción: más denso cerca del centro, vacío adentro
+      const r = 0.72 + Math.pow(Math.random(), 2.2) * 1.3
+      const a = Math.random() * TAU
+      out.set([Math.cos(a) * r, rnd(0.04) * r, Math.sin(a) * r], i * 3)
+    }
+  }
+  return out
+}
+
+// 0 esfera, 1 nudo, 2 galaxia, 3 hélice, 4 planeta con anillos, 5 agujero negro
+export const shapes: Gen[] = [sphere, knot, galaxy, helix, ringed, blackHole]

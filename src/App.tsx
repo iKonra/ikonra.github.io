@@ -10,15 +10,19 @@ import { useLenis } from '@/hooks/useLenis'
 import Cursor from './components/Cursor'
 import Intro from './components/Intro'
 import World from './components/World'
+import Nebula from './components/Nebula'
+import Stardust from './components/Stardust'
 
 export default function App() {
   useLenis()
   return (
     <I18nProvider>
       <MotionConfig reducedMotion="user">
+        <Nebula />
         <World />
         <div className="grain" aria-hidden />
         <Intro />
+        <Stardust />
         <Cursor />
         <Nav />
         <main>

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { palettes, sceneState } from './sceneState'
 import { shapes } from './shapes'
+import Cosmos from './Cosmos'
 
 // Un solo mundo detrás de toda la página: la cámara vuela entre estrellas con el scroll
 // y un enjambre de partículas viaja de sección en sección cambiando de figura.
@@ -15,8 +16,8 @@ type Pose = { x: number; y: number; s: number }
 const poses: Record<string, { wide: Pose; narrow: Pose; shape: number }> = {
   top: { wide: { x: 0.24, y: 0, s: 1 }, narrow: { x: 0.06, y: -0.3, s: 0.62 }, shape: -1 },
   about: { wide: { x: 0.4, y: -0.04, s: 1.1 }, narrow: { x: 0.2, y: 0.3, s: 0.6 }, shape: 2 },
-  journey: { wide: { x: 0.4, y: 0.12, s: 0.6 }, narrow: { x: 0.34, y: 0.36, s: 0.4 }, shape: 3 },
-  contact: { wide: { x: 0.28, y: 0.02, s: 1.05 }, narrow: { x: 0.3, y: 0.36, s: 0.42 }, shape: 1 },
+  journey: { wide: { x: 0.4, y: 0.12, s: 0.6 }, narrow: { x: 0.34, y: 0.36, s: 0.4 }, shape: 0 },
+  contact: { wide: { x: 0.28, y: 0.02, s: 1.05 }, narrow: { x: 0.3, y: 0.36, s: 0.42 }, shape: 5 },
 }
 const sectionIds = Object.keys(poses)
 
@@ -241,6 +242,7 @@ function World({ particles, stars }: { particles: number; stars: number }) {
 
   return (
     <>
+      <Cosmos mobile={particles < 10000} />
       <Swarm count={particles} poseRef={swarm} />
       <points geometry={starGeo}>
         <shaderMaterial
