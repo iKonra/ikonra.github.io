@@ -4,8 +4,8 @@ import { useI18n } from '../i18n/I18nProvider'
 import { ease } from './motion'
 import { Lock } from 'lucide-react'
 
-/** Ventana de navegador con el dominio real del producto. */
-export function BrowserFragment({ domain, word }: { domain: string; word: string }) {
+/** Ventana de navegador con el dominio real del producto y su logo. */
+export function BrowserFragment({ domain, word, logo }: { domain: string; word: string; logo?: string }) {
   return (
     <div className="frag frag-browser" data-ui>
       <div className="browser-bar">
@@ -16,33 +16,132 @@ export function BrowserFragment({ domain, word }: { domain: string; word: string
         </span>
       </div>
       <div className="browser-body">
+        {logo && <span className="browser-logo" style={{ maskImage: `url(${logo})`, WebkitMaskImage: `url(${logo})` }} aria-hidden />}
         <span className="browser-word">{word}<span className="browser-dot">.</span></span>
       </div>
     </div>
   )
 }
 
-/** Pantalla de título de videojuego. */
-export function GameFragment() {
+// Sprites en pixel art: X = hueso, O = ojos
+const SKULL = ['..XXXXX..', '.XXXXXXX.', 'XXXXXXXXX', 'XXOOXOOXX', 'XXOOXOOXX', 'XXXXXXXXX', '.XXX.XXX.', '..XXXXX..', '..X.X.X..']
+const BONE = ['XX.....XX', '.XXXXXXX.', '.XXXXXXX.', 'XX.....XX']
+
+function sprite(ctx: CanvasRenderingContext2D, map: string[], x: number, y: number, u: number, body: string, eye: string) {
+  map.forEach((row, j) => [...row].forEach((c, i) => {
+    if (c === '.') return
+    ctx.fillStyle = c === 'O' ? eye : body
+    ctx.fillRect(Math.round(x + i * u), Math.round(y + j * u), Math.ceil(u), Math.ceil(u))
+  }))
+}
+
+/** Mini juego de TwoBones: una calavera que salta huesos. Tocá, hacé click o apretá espacio. */
+export function GameFragment({ play = true }: { play?: boolean }) {
   const { t } = useI18n()
+  const canvas = useRef<HTMLCanvasElement>(null)
+  const jumpRef = useRef<() => void>(() => {})
+  const [state, setState] = useState<'idle' | 'run' | 'over'>('idle')
+
+  useEffect(() => {
+    const c = canvas.current
+    if (!c) return
+    const ctx = c.getContext('2d')!
+    let w = 0, h = 0, u = 4, raf = 0, last = 0, visible = false
+    const dpr = Math.min(devicePixelRatio, 2)
+    const g = { y: 0, vy: 0, speed: 0, dist: 0, obstacles: [] as { x: number; tall: boolean }[], mode: 'idle' as 'idle' | 'run' | 'over' }
+    const stars = Array.from({ length: 40 }, () => ({ x: Math.random(), y: Math.random() * 0.6, s: Math.random() }))
+
+    const resize = () => {
+      const r = c.getBoundingClientRect()
+      w = r.width; h = r.height
+      c.width = w * dpr; c.height = h * dpr
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      u = Math.max(2, h / 70)
+      draw()
+    }
+    const ground = () => h * 0.8
+    const reset = () => { g.y = 0; g.vy = 0; g.speed = w * 0.45; g.dist = 0; g.obstacles = [{ x: w + 40, tall: false }] }
+
+    const draw = () => {
+      ctx.fillStyle = '#0b0a09'; ctx.fillRect(0, 0, w, h)
+      stars.forEach(s => {
+        const x = ((s.x * w - g.dist * (0.05 + s.s * 0.1)) % w + w) % w
+        ctx.fillStyle = `rgba(243,239,231,${0.2 + s.s * 0.5})`
+        ctx.fillRect(Math.round(x), Math.round(s.y * h), Math.ceil(u * 0.5), Math.ceil(u * 0.5))
+      })
+      // Colinas lejanas en bloques
+      ctx.fillStyle = '#1d1a17'
+      for (let i = -1; i < w / (u * 12) + 2; i++) {
+        const x = i * u * 12 - ((g.dist * 0.3) % (u * 12))
+        const hh = (3 + ((i + Math.floor(g.dist * 0.3 / (u * 12))) % 4 + 4) % 4) * u * 2
+        ctx.fillRect(Math.round(x), Math.round(ground() - hh), Math.ceil(u * 12), Math.ceil(hh))
+      }
+      ctx.fillStyle = '#2a2622'; ctx.fillRect(0, ground(), w, h - ground())
+      ctx.fillStyle = '#3a342e'
+      for (let x = -((g.dist) % (u * 6)); x < w; x += u * 6) ctx.fillRect(Math.round(x), Math.round(ground() + u * 2), Math.ceil(u * 2), Math.ceil(u))
+      g.obstacles.forEach(o => {
+        sprite(ctx, BONE, o.x, ground() - 4 * u, u, '#efe4cf', '#efe4cf')
+        if (o.tall) sprite(ctx, BONE, o.x, ground() - 8 * u, u, '#efe4cf', '#efe4cf')
+      })
+      sprite(ctx, SKULL, w * 0.16, ground() - 9 * u - g.y, u, '#f3efe7', '#ff5a1f')
+    }
+
+    const step = (time: number) => {
+      raf = 0
+      const dt = Math.min((time - (last || time)) / 1000, 0.05)
+      last = time
+      if (g.mode === 'run') {
+        g.speed += dt * w * 0.012
+        g.dist += g.speed * dt
+        g.vy -= h * 3.4 * dt
+        g.y = Math.max(0, g.y + g.vy * dt)
+        if (g.y === 0) g.vy = 0
+        g.obstacles.forEach(o => { o.x -= g.speed * dt })
+        g.obstacles = g.obstacles.filter(o => o.x > -10 * u)
+        const lastOb = g.obstacles[g.obstacles.length - 1]
+        if (!lastOb || lastOb.x < w - (w * 0.35 + Math.random() * w * 0.5)) g.obstacles.push({ x: w + 10, tall: Math.random() < 0.3 })
+        // Choque: caja de la calavera contra la de cada hueso
+        const px = w * 0.16 + u, pw = 7 * u, py = g.y
+        if (g.obstacles.some(o => o.x < px + pw && o.x + 9 * u > px && py < (o.tall ? 8 : 4) * u - u)) { g.mode = 'over'; setState('over') }
+      } else {
+        g.dist += w * 0.06 * dt
+      }
+      draw()
+      if (visible) raf = requestAnimationFrame(step)
+    }
+    const kick = () => { if (!raf && visible) { last = 0; raf = requestAnimationFrame(step) } }
+
+    jumpRef.current = () => {
+      if (g.mode !== 'run') { reset(); g.mode = 'run'; setState('run') }
+      if (g.y === 0) g.vy = h * 1.25
+    }
+
+    const ro = new ResizeObserver(resize)
+    ro.observe(c)
+    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting && play; kick() })
+    io.observe(c)
+    resize()
+    return () => { ro.disconnect(); io.disconnect(); cancelAnimationFrame(raf) }
+  }, [play])
+
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); jumpRef.current() }
+  }
+
   return (
     <div className="frag frag-game" data-ui>
-      <svg className="bones" viewBox="0 0 120 120" aria-hidden>
-        <g fill="currentColor">
-          <g transform="rotate(45 60 60)">
-            <rect x="22" y="54" width="76" height="12" rx="6" />
-            <circle cx="22" cy="52" r="9" /><circle cx="22" cy="68" r="9" />
-            <circle cx="98" cy="52" r="9" /><circle cx="98" cy="68" r="9" />
-          </g>
-          <g transform="rotate(-45 60 60)">
-            <rect x="22" y="54" width="76" height="12" rx="6" />
-            <circle cx="22" cy="52" r="9" /><circle cx="22" cy="68" r="9" />
-            <circle cx="98" cy="52" r="9" /><circle cx="98" cy="68" r="9" />
-          </g>
-        </g>
-      </svg>
-      <span className="game-title">TwoBones</span>
-      <span className="game-start">{t.projects.game.start}</span>
+      <canvas
+        ref={canvas}
+        className="game-canvas"
+        tabIndex={0}
+        role="img"
+        aria-label={t.projects.game.label}
+        onPointerDown={() => jumpRef.current()}
+        onKeyDown={onKey}
+        data-cursor={t.projects.game.cursor}
+      />
+      <span className="game-brand">TwoBones</span>
+      {state !== 'run' && <span className="game-hint">{state === 'over' ? t.projects.game.over : t.projects.game.hint}</span>}
     </div>
   )
 }

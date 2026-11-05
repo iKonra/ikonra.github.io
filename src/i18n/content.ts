@@ -101,7 +101,7 @@ const es = {
       reply: 'Hola, soy Skoly. Acá tenés todo lo que puedo hacer en este servidor.',
       typing: 'Skoly está escribiendo…',
     },
-    game: { start: 'Presioná start' },
+    game: { hint: 'Tocá o apretá espacio para saltar', over: 'Perdiste. Tocá para seguir', label: 'Mini juego de TwoBones', cursor: 'Saltar' },
   },
   journey: {
     title: 'Trayectoria',
@@ -203,7 +203,7 @@ const en: Dict = {
       reply: "Hi, I'm Skoly. Here's everything I can do in this server.",
       typing: 'Skoly is typing…',
     },
-    game: { start: 'Press start' },
+    game: { hint: 'Tap or press space to jump', over: 'Game over. Tap to keep going', label: 'TwoBones mini game', cursor: 'Jump' },
   },
   journey: {
     title: 'Journey',

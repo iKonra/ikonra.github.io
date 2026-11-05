@@ -1,22 +1,22 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { blobFragment, blobVertex } from './blobShaders'
 import { palettes, sceneState } from './sceneState'
+import { shapes } from './shapes'
 
 // Un solo mundo detrás de toda la página: la cámara vuela entre estrellas con el scroll
-// y el blob viaja de sección en sección.
+// y un enjambre de partículas viaja de sección en sección cambiando de figura.
 
 const DEPTH = 46 // distancia que recorre la cámara de arriba a abajo
-const BLOB_DIST = 4.6
+const SWARM_DIST = 4.6
 
 type Pose = { x: number; y: number; s: number }
-// Posición del blob en cada sección, en fracciones del ancho y alto visibles
-const poses: Record<string, { wide: Pose; narrow: Pose }> = {
-  top: { wide: { x: 0.24, y: 0, s: 1 }, narrow: { x: 0.08, y: -0.32, s: 0.62 } },
-  about: { wide: { x: 0.42, y: 0.32, s: 0.42 }, narrow: { x: 0.36, y: 0.38, s: 0.32 } },
-  journey: { wide: { x: 0.42, y: 0.3, s: 0 }, narrow: { x: 0.36, y: 0.38, s: 0 } },
-  contact: { wide: { x: 0.28, y: 0.02, s: 1.05 }, narrow: { x: 0.3, y: 0.36, s: 0.42 } },
+// Posición y figura del enjambre en cada sección. shape -1 = la que eligió "Me aburrí".
+const poses: Record<string, { wide: Pose; narrow: Pose; shape: number }> = {
+  top: { wide: { x: 0.24, y: 0, s: 1 }, narrow: { x: 0.06, y: -0.3, s: 0.62 }, shape: -1 },
+  about: { wide: { x: 0.4, y: -0.04, s: 1.1 }, narrow: { x: 0.2, y: 0.3, s: 0.6 }, shape: 2 },
+  journey: { wide: { x: 0.4, y: 0.12, s: 0.6 }, narrow: { x: 0.34, y: 0.36, s: 0.4 }, shape: 3 },
+  contact: { wide: { x: 0.28, y: 0.02, s: 1.05 }, narrow: { x: 0.3, y: 0.36, s: 0.42 }, shape: 1 },
 }
 const sectionIds = Object.keys(poses)
 
@@ -30,25 +30,125 @@ function presences(vh: number) {
   })
 }
 
-function World({ detail, stars }: { detail: number; stars: number }) {
-  const { camera, size } = useThree()
-  const blob = useRef<THREE.Mesh>(null)
-  const pointer = useRef(new THREE.Vector2())
-  const pose = useRef({ x: 0, y: 0, s: 0 })
-  const wide = size.width > 860
+const swarmVertex = /* glsl */ `
+uniform float uFrom;
+uniform float uTo;
+uniform float uT;
+uniform float uTime;
+uniform float uKick;
+uniform float uSize;
+uniform float uPixelRatio;
+uniform vec3 uMouse;
+uniform vec3 uColorA;
+uniform vec3 uColorB;
+attribute vec3 p1;
+attribute vec3 p2;
+attribute vec3 p3;
+attribute vec3 p4;
+attribute vec3 p5;
+attribute vec4 aRand;
+varying vec3 vColor;
+varying float vAlpha;
+
+vec3 shapeAt(float i) {
+  if (i < 0.5) return position;
+  if (i < 1.5) return p1;
+  if (i < 2.5) return p2;
+  if (i < 3.5) return p3;
+  if (i < 4.5) return p4;
+  return p5;
+}
+
+void main() {
+  // Cada partícula arranca su viaje con un pequeño retraso propio
+  float t = clamp(uT * 1.5 - aRand.x * 0.5, 0.0, 1.0);
+  t = t * t * (3.0 - 2.0 * t);
+  vec3 p = mix(shapeAt(uFrom), shapeAt(uTo), t);
+
+  // A mitad de camino se arremolinan
+  float mid = sin(t * 3.14159);
+  p += vec3(sin(aRand.y * 31.0 + uTime * 1.3), cos(aRand.z * 23.0 + uTime), sin(aRand.w * 17.0 - uTime * 1.1)) * 0.45 * mid;
+  // Respiración suave
+  p += normalize(p + 1e-4) * sin(uTime * 1.6 + aRand.w * 6.2831) * 0.025;
+  // Explosión del botón "Me aburrí"
+  p += normalize(p + 1e-4) * uKick * (0.4 + aRand.y * 1.4);
+
+  // El cursor las aparta
+  vec3 d = p - uMouse;
+  float dist = length(d);
+  float push = smoothstep(0.85, 0.0, dist);
+  p += normalize(d + 1e-4) * push * 0.6;
+
+  vec4 mv = modelViewMatrix * vec4(p, 1.0);
+  gl_Position = projectionMatrix * mv;
+  gl_PointSize = uSize * (0.45 + aRand.z * 1.1) * uPixelRatio / -mv.z;
+
+  vColor = mix(uColorA, uColorB, aRand.x * aRand.x) + push * 0.6;
+  vAlpha = 0.55 + aRand.y * 0.45;
+}`
+
+const swarmFragment = /* glsl */ `
+varying vec3 vColor;
+varying float vAlpha;
+void main() {
+  float d = length(gl_PointCoord - 0.5);
+  float a = smoothstep(0.5, 0.0, d);
+  gl_FragColor = vec4(vColor, a * a * vAlpha);
+}`
+
+function Swarm({ count, poseRef }: { count: number; poseRef: React.MutableRefObject<THREE.Points | null> }) {
+  const geo = useMemo(() => {
+    const g = new THREE.BufferGeometry()
+    const all = shapes.map(fn => fn(count))
+    g.setAttribute('position', new THREE.BufferAttribute(all[0], 3))
+    all.slice(1).forEach((arr, i) => g.setAttribute(`p${i + 1}`, new THREE.BufferAttribute(arr, 3)))
+    const rand = new Float32Array(count * 4)
+    for (let i = 0; i < rand.length; i++) rand[i] = Math.random()
+    g.setAttribute('aRand', new THREE.BufferAttribute(rand, 4))
+    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 4)
+    return g
+  }, [count])
 
   const uniforms = useMemo(
     () => ({
+      uFrom: { value: 0 },
+      uTo: { value: 0 },
+      uT: { value: 1 },
       uTime: { value: 0 },
-      uIntensity: { value: 0.22 },
-      uPointer: { value: new THREE.Vector2() },
+      uKick: { value: 0 },
+      uSize: { value: 30 },
+      uPixelRatio: { value: Math.min(devicePixelRatio, 2) },
+      uMouse: { value: new THREE.Vector3(99, 99, 99) },
       uColorA: { value: new THREE.Color(palettes[0][0]) },
       uColorB: { value: new THREE.Color(palettes[0][1]) },
-      uColorC: { value: new THREE.Color(palettes[0][2]) },
     }),
     [],
   )
-  const target = useMemo(() => [new THREE.Color(), new THREE.Color(), new THREE.Color()], [])
+
+  return (
+    <points ref={poseRef} geometry={geo}>
+      <shaderMaterial
+        vertexShader={swarmVertex}
+        fragmentShader={swarmFragment}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
+  )
+}
+
+function World({ particles, stars }: { particles: number; stars: number }) {
+  const { camera, size, raycaster } = useThree()
+  const swarm = useRef<THREE.Points | null>(null)
+  const pointer = useRef(new THREE.Vector2())
+  const pose = useRef({ x: 0, y: 0, s: 0 })
+  const morph = useRef({ to: 0 })
+  const tmp = useMemo(() => ({ plane: new THREE.Plane(), hit: new THREE.Vector3(), n: new THREE.Vector3(), a: new THREE.Color(), b: new THREE.Color() }), [])
+  const wide = size.width > 860
+  // En pantallas táctiles no hay cursor que siga: no apartamos partículas
+  const fine = useMemo(() => matchMedia('(hover: hover) and (pointer: fine)').matches, [])
 
   const starGeo = useMemo(() => {
     const pos = new Float32Array(stars * 3)
@@ -81,13 +181,14 @@ function World({ detail, stars }: { detail: number; stars: number }) {
     camera.lookAt(camera.position.x * 0.5, camera.position.y * 0.5, camera.position.z - 10)
     starUniforms.uTime.value += dt
 
-    // Blob: promedio de las poses de las secciones visibles
+    // Pose: promedio de las secciones visibles. Figura: la de la sección que más se ve.
     const pres = presences(vh)
     const total = pres.reduce((a, b) => a + b, 0)
-    let tx = 0, ty = 0, ts = 0
+    let tx = 0, ty = 0, ts = 0, best = 0
     pres.forEach((p, i) => {
       const ps = poses[sectionIds[i]][wide ? 'wide' : 'narrow']
       tx += ps.x * p; ty += ps.y * p; ts += ps.s * p
+      if (p > pres[best]) best = i
     })
     if (total > 0.001) { tx /= total; ty /= total }
     ts = total > 0.001 ? ts / Math.max(total, 1) : 0
@@ -96,39 +197,51 @@ function World({ detail, stars }: { detail: number; stars: number }) {
     pose.current.y += (ty - pose.current.y) * k
     pose.current.s += (ts - pose.current.s) * k
 
-    const h = 2 * BLOB_DIST * Math.tan(THREE.MathUtils.degToRad(45 / 2))
-    const w = h * (size.width / size.height)
-    const base = Math.min(1.15, w / 3, h / 2.9)
+    const pts = swarm.current
+    if (!pts) return
+    const u = (pts.material as THREE.ShaderMaterial).uniforms
 
-    sceneState.kick = Math.max(0, sceneState.kick - dt * 1.4)
-    const kick = sceneState.kick
+    const shapeWanted = poses[sectionIds[best]].shape
+    const target = shapeWanted < 0 ? sceneState.shape : shapeWanted
+    if (target !== morph.current.to) {
+      // Arranca desde la figura a la que iba, aunque no haya llegado
+      u.uFrom.value = u.uT.value > 0.5 ? morph.current.to : u.uFrom.value
+      u.uTo.value = target
+      u.uT.value = 0
+      morph.current.to = target
+    }
+    u.uT.value = Math.min(1, u.uT.value + dt / 1.8)
+
+    sceneState.kick = Math.max(0, sceneState.kick - dt * 1.2)
+    u.uKick.value = sceneState.kick * sceneState.kick
+    u.uTime.value += dt
+
     const pal = palettes[sceneState.palette]
     const mix = 1 - Math.pow(0.02, dt)
-    target[0].set(pal[0]); target[1].set(pal[1]); target[2].set(pal[2])
-    uniforms.uColorA.value.lerp(target[0], mix)
-    uniforms.uColorB.value.lerp(target[1], mix)
-    uniforms.uColorC.value.lerp(target[2], mix)
-    uniforms.uTime.value += dt + kick * dt * 3
-    uniforms.uPointer.value.copy(pointer.current)
-    uniforms.uIntensity.value = 0.2 + Math.abs(pointer.current.x) * 0.08 + kick * kick * 0.35 + frac * 0.15
+    u.uColorA.value.lerp(tmp.a.set(pal[0]), mix)
+    u.uColorB.value.lerp(tmp.b.set(pal[1]), mix)
 
-    const m = blob.current
-    if (m) {
-      m.visible = pose.current.s > 0.01
-      m.position.set(camera.position.x * 0.5 + pose.current.x * w, camera.position.y * 0.5 + pose.current.y * h, camera.position.z - BLOB_DIST)
-      m.scale.setScalar(base * pose.current.s * (1 - kick * (1 - kick) * 0.5))
-      m.rotation.y += dt * (0.12 + kick * 2.2)
-      m.rotation.x = pointer.current.y * 0.35 + frac * 6
-      m.rotation.z = pointer.current.x * 0.2
-    }
+    const h = 2 * SWARM_DIST * Math.tan(THREE.MathUtils.degToRad(45 / 2))
+    const w = h * (size.width / size.height)
+    const base = Math.min(1.1, w / 3.2, h / 3)
+    pts.visible = pose.current.s > 0.01
+    pts.position.set(camera.position.x * 0.5 + pose.current.x * w, camera.position.y * 0.5 + pose.current.y * h, camera.position.z - SWARM_DIST)
+    pts.scale.setScalar(base * pose.current.s)
+    pts.rotation.y += dt * 0.18
+    pts.rotation.x = 0.35 + pointer.current.y * 0.3
+    pts.rotation.z = pointer.current.x * 0.15
+    u.uSize.value = (wide ? 34 : 26) * Math.max(0.6, pose.current.s)
+
+    // Punto del cursor en el espacio del enjambre, para apartar las partículas
+    pts.updateMatrixWorld()
+    raycaster.setFromCamera(state.pointer, camera)
+    tmp.plane.setFromNormalAndCoplanarPoint(tmp.n.set(0, 0, 1), pts.position)
+    if (fine && raycaster.ray.intersectPlane(tmp.plane, tmp.hit)) u.uMouse.value.copy(pts.worldToLocal(tmp.hit))
   })
 
   return (
     <>
-      <mesh ref={blob}>
-        <icosahedronGeometry args={[1.25, detail]} />
-        <shaderMaterial vertexShader={blobVertex} fragmentShader={blobFragment} uniforms={uniforms} />
-      </mesh>
+      <Swarm count={particles} poseRef={swarm} />
       <points geometry={starGeo}>
         <shaderMaterial
           vertexShader={starVertex}
@@ -189,11 +302,11 @@ export default function WorldScene() {
         frameloop={!visible ? 'never' : reduced ? 'demand' : 'always'}
         dpr={isMobile ? [1, 1.5] : [1, 2]}
         camera={{ position: [0, 0, 5], fov: 45, near: 0.1, far: 80 }}
-        gl={{ antialias: !isMobile, alpha: true, powerPreference: 'high-performance' }}
+        gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
         eventSource={document.body}
         eventPrefix="client"
       >
-        <World detail={isMobile ? 24 : 48} stars={isMobile ? 700 : 1800} />
+        <World particles={isMobile ? 7000 : 16000} stars={isMobile ? 700 : 1800} />
       </Canvas>
     </div>
   )

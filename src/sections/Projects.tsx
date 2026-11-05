@@ -18,8 +18,8 @@ const fields: Record<Project['id'], { bg: string; tone: 'dark' | 'light' }> = {
 }
 
 function Fragment({ id, play }: { id: Project['id']; play: boolean }) {
-  if (id === 'tricapi') return <BrowserFragment domain="tricapi.com" word="tricapi" />
-  if (id === 'twobones') return <GameFragment />
+  if (id === 'tricapi') return <BrowserFragment domain="tricapi.com" word="tricapi" logo="/images/tricapi-logo.webp" />
+  if (id === 'twobones') return <GameFragment play={play} />
   if (id === 'web') return <CodeFragment play={play} />
   return <DiscordFragment play={play} />
 }

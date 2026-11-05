@@ -21,22 +21,50 @@ function Environment() {
   return null
 }
 
-/** Tricapi: tres cápsulas que forman un triángulo, como tres socios. */
+/** Tricapi: medalla hexagonal con el logo de los tres carpinchos, de los dos lados. */
+function hexShape(r: number) {
+  const sh = new THREE.Shape()
+  for (let i = 0; i < 6; i++) {
+    const a = Math.PI / 2 + (i / 6) * Math.PI * 2
+    const x = Math.cos(a) * r, y = Math.sin(a) * r
+    if (i === 0) sh.moveTo(x, y); else sh.lineTo(x, y)
+  }
+  sh.closePath()
+  return sh
+}
 function TriModel() {
-  const caps = useMemo(() => new THREE.CapsuleGeometry(0.2, 1.35, 8, 24), [])
-  const mats = useMemo(
-    () => [ORANGE, INK, '#3a3631'].map(c => new THREE.MeshPhysicalMaterial({ color: c, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.15 })),
-    [],
+  const depth = 0.22
+  const body = useMemo(() => {
+    const g = new THREE.ExtrudeGeometry(hexShape(1), { depth, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06, bevelSegments: 5, curveSegments: 1 })
+    g.translate(0, 0, -depth / 2)
+    return g
+  }, [])
+  const rim = useMemo(() => {
+    const sh = hexShape(1.16)
+    sh.holes.push(hexShape(1.04) as unknown as THREE.Path)
+    const g = new THREE.ExtrudeGeometry(sh, { depth: depth + 0.1, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 3 })
+    g.translate(0, 0, -(depth + 0.1) / 2)
+    return g
+  }, [])
+  const logo = useMemo(() => {
+    const tex = new THREE.TextureLoader().load('/images/tricapi-logo.webp')
+    tex.colorSpace = THREE.SRGBColorSpace
+    tex.anisotropy = 4
+    return tex
+  }, [])
+  const bodyMat = useMemo(() => new THREE.MeshPhysicalMaterial({ color: '#141210', roughness: 0.28, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.08 }), [])
+  const rimMat = useMemo(() => new THREE.MeshPhysicalMaterial({ color: ORANGE, roughness: 0.22, metalness: 0.55, clearcoat: 1 }), [])
+  const logoMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ map: logo, color: INK, emissive: INK, emissiveMap: logo, emissiveIntensity: 0.35, transparent: true, roughness: 0.4, metalness: 0.3, depthWrite: false }),
+    [logo],
   )
-  const r = 0.5
+  const face = depth / 2 + 0.065
   return (
-    <group>
-      {[0, 1, 2].map(i => {
-        const a = (i / 3) * Math.PI * 2 + Math.PI / 2
-        return (
-          <mesh key={i} geometry={caps} material={mats[i]} position={[Math.cos(a) * r, Math.sin(a) * r, 0]} rotation={[0, 0, a]} />
-        )
-      })}
+    <group scale={1.05}>
+      <mesh geometry={body} material={bodyMat} />
+      <mesh geometry={rim} material={rimMat} />
+      <mesh position={[0, -0.02, face]} material={logoMat}><planeGeometry args={[1.55, 1.55]} /></mesh>
+      <mesh position={[0, -0.02, -face]} rotation={[0, Math.PI, 0]} material={logoMat}><planeGeometry args={[1.55, 1.55]} /></mesh>
     </group>
   )
 }

@@ -15,7 +15,7 @@ export default function Cursor() {
     if (!enabled) return
     const move = (e: PointerEvent) => {
       x.set(e.clientX); y.set(e.clientY)
-      const el = (e.target as Element).closest?.('a, button')
+      const el = (e.target as Element).closest?.('a, button, [data-cursor]')
       setHover(!!el)
       setLabel(el?.getAttribute('data-cursor') ?? '')
     }
