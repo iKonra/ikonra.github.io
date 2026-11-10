@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform, type MotionValue } from 'motion/react'
+import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react'
 import { useRef } from 'react'
 import { useI18n } from '../i18n/I18nProvider'
 
@@ -10,7 +10,7 @@ function Word({ children, progress, range }: { children: string; progress: Motio
 }
 
 /** Escena fija: la frase se ilumina palabra por palabra mientras scrolleás, y después aparecen los datos. */
-export default function About() {
+function AboutPinned() {
   const { t } = useI18n()
   const ref = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
@@ -40,4 +40,29 @@ export default function About() {
       </div>
     </section>
   )
+}
+
+/** Con "reducir movimiento": la misma información, todo a la vista y sin pantalla fija. */
+function AboutStatic() {
+  const { t } = useI18n()
+  return (
+    <section id="about" className="about-static">
+      <div className="about-sticky">
+        <h2 className="about-label">{t.about.title}</h2>
+        <p className="reveal">{t.about.statement}</p>
+        <dl className="facts-row">
+          {t.about.facts.map(([k, v]) => (
+            <div key={k} className="fact">
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  )
+}
+
+export default function About() {
+  return useReducedMotion() ? <AboutStatic /> : <AboutPinned />
 }

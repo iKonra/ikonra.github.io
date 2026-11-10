@@ -10,11 +10,14 @@ export const palettes = [
 
 export const SHAPES = 6
 
-/** shape: figura del hero; kick: impulso del botón "Me aburrí", decae solo. */
+/** shape: figura del hero; kick: impulso al tocar el enjambre o los botones del hero, decae solo. */
 export const sceneState = { palette: 0, shape: 4, kick: 0 }
 
-export function bore(index: number) {
-  sceneState.palette = index % palettes.length
-  sceneState.shape = (4 + index) % SHAPES
+let bursts = 0
+/** Cambia la figura y la paleta del enjambre con una pequeña explosión. */
+export function burst() {
+  bursts++
+  sceneState.palette = bursts % palettes.length
+  sceneState.shape = (4 + bursts) % SHAPES
   sceneState.kick = 1
 }

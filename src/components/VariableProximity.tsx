@@ -1,27 +1,24 @@
-import { motion } from 'motion/react'
 import { useEffect, useRef } from 'react'
-import { ease } from './motion'
+import { isLite, prefersReducedMotion } from '../lib/perf'
 
 type Props = {
   text: string
   radius?: number
   from?: number
   to?: number
-  /** Letras que suben desde una máscara al montarse. */
-  rise?: boolean
-  delay?: number
 }
 
 /**
  * Inspirado en React Bits <VariableProximity />: el peso de cada letra crece cuanto más cerca está el cursor.
  * En pantallas táctiles el peso ondula solo. Escribe estilos directo al DOM, sin re-renders.
+ * Con "reducir movimiento" o en equipos lentos el texto queda quieto.
  */
-export default function VariableProximity({ text, radius = 260, from = 380, to = 800, rise = false, delay = 0 }: Props) {
+export default function VariableProximity({ text, radius = 260, from = 380, to = 800 }: Props) {
   const root = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     const el = root.current
-    if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (!el || prefersReducedMotion() || isLite()) return
     const letters = [...el.querySelectorAll<HTMLSpanElement>('[data-letter]')]
     const fine = matchMedia('(hover: hover) and (pointer: fine)').matches
     let px = -9999, py = -9999, raf = 0, inView = true
@@ -63,25 +60,9 @@ export default function VariableProximity({ text, radius = 260, from = 380, to =
       <span className="sr-only">{text}</span>
       {text.split(' ').map((word, wi) => (
         <span key={wi} className="vp-word" aria-hidden>
-          {[...word].map(ch => {
-            const idx = i++
-            return rise ? (
-              <span key={idx} className="vp-mask">
-                <motion.span
-                  data-letter
-                  className="vp-letter"
-                  style={{ fontVariationSettings: `'wght' ${from}` }}
-                  initial={{ y: '110%' }}
-                  animate={{ y: '0%' }}
-                  transition={{ delay: delay + idx * 0.035, duration: 1, ease: ease.out }}
-                >
-                  {ch}
-                </motion.span>
-              </span>
-            ) : (
-              <span key={idx} data-letter className="vp-letter" style={{ fontVariationSettings: `'wght' ${from}` }}>{ch}</span>
-            )
-          })}
+          {[...word].map(ch => (
+            <span key={i++} data-letter className="vp-letter" style={{ fontVariationSettings: `'wght' ${from}` }}>{ch}</span>
+          ))}
         </span>
       ))}
     </span>

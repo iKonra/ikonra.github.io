@@ -1,38 +1,6 @@
-// Efectos adaptados de motion-primitives (comunidad de 21st.dev): TextScramble, Magnetic y SlidingNumber.
+// Efectos adaptados de motion-primitives (comunidad de 21st.dev): Magnetic y SlidingNumber.
 import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'motion/react'
-import { useEffect, useRef, useState, type ReactNode, type PointerEvent } from 'react'
-
-const lower = 'abcdefghijklmnopqrstuvwxyz'
-
-/** Texto que se "decodifica" letra por letra cada vez que cambia. */
-export function TextScramble({ text, duration = 0.6, speed = 0.03, trigger = true }: { text: string; duration?: number; speed?: number; trigger?: boolean }) {
-  const [shown, setShown] = useState(trigger ? '' : text)
-
-  useEffect(() => {
-    if (!trigger) return
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { setShown(text); return }
-    const steps = duration / speed
-    let step = 0
-    const id = setInterval(() => {
-      const progress = step / steps
-      let out = ''
-      for (let i = 0; i < text.length; i++) {
-        const ch = text[i]
-        out += ch === ' ' || progress * text.length > i ? ch : lower[Math.floor(Math.random() * lower.length)]
-      }
-      setShown(out)
-      if (++step > steps) { clearInterval(id); setShown(text) }
-    }, speed * 1000)
-    return () => clearInterval(id)
-  }, [text, trigger, duration, speed])
-
-  return (
-    <>
-      <span className="sr-only">{text}</span>
-      <span aria-hidden>{shown || ' '}</span>
-    </>
-  )
-}
+import { useEffect, useRef, type ReactNode, type PointerEvent } from 'react'
 
 /** El hijo se acerca al cursor dentro de su área. Solo con mouse. */
 export function Magnetic({ children, intensity = 0.3 }: { children: ReactNode; intensity?: number }) {
@@ -74,12 +42,12 @@ function Digit({ value, place }: { value: number; place: number }) {
   )
 }
 
-/** Número cuyos dígitos ruedan al cambiar. */
-export function SlidingNumber({ value }: { value: number }) {
-  const digits = String(Math.abs(Math.floor(value))).split('')
+/** Número cuyos dígitos ruedan al cambiar. `min` fija la cantidad de dígitos (rellena con ceros) para que todos rueden desde 0. */
+export function SlidingNumber({ value, min = 1 }: { value: number; min?: number }) {
+  const digits = String(Math.abs(Math.floor(value))).padStart(min, '0').split('')
   const ref = useRef<HTMLSpanElement>(null)
   return (
-    <span ref={ref} className="sliding-number" aria-label={String(value)}>
+    <span ref={ref} className="sliding-number">
       {digits.map((_, i) => {
         const place = 10 ** (digits.length - i - 1)
         return <Digit key={place} value={value} place={place} />

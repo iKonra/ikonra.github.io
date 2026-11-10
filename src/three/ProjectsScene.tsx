@@ -4,7 +4,10 @@ import * as THREE from 'three'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { projectsState } from './projectsState'
+import { degrade, getTier, useTier } from '../lib/perf'
 
+const NAV = 64 // alto del header fijo, en px
+const MODEL_HEIGHT = 2.4 // alto aproximado de un modelo con escala 1, en unidades 3D
 const ORANGE = '#ff5a1f'
 const INK = '#f3efe7'
 const DARK = '#1a1916'
@@ -65,6 +68,28 @@ function TriModel() {
       <mesh geometry={rim} material={rimMat} />
       <mesh position={[0, -0.02, face]} material={logoMat}><planeGeometry args={[1.55, 1.55]} /></mesh>
       <mesh position={[0, -0.02, -face]} rotation={[0, Math.PI, 0]} material={logoMat}><planeGeometry args={[1.55, 1.55]} /></mesh>
+    </group>
+  )
+}
+
+/** Inti: un sello oscuro con una "i" (tallo blanco y punto dorado), de los dos lados. El verde del panel queda de fondo. */
+function IntiModel() {
+  const badge = useMemo(() => new RoundedBoxGeometry(1.7, 1.7, 0.3, 6, 0.28), [])
+  const stem = useMemo(() => new RoundedBoxGeometry(0.34, 0.9, 0.2, 4, 0.1), [])
+  const dot = useMemo(() => new THREE.SphereGeometry(0.21, 24, 16), [])
+  const badgeMat = useMemo(() => new THREE.MeshPhysicalMaterial({ color: '#0a1b16', roughness: 0.25, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.08 }), [])
+  const stemMat = useMemo(() => new THREE.MeshPhysicalMaterial({ color: '#f7f5ff', roughness: 0.35, clearcoat: 0.6 }), [])
+  const dotMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ffc933', emissive: '#ffb300', emissiveIntensity: 0.55, roughness: 0.3 }), [])
+  const face = 0.15 + 0.1
+  return (
+    <group scale={0.95}>
+      <mesh geometry={badge} material={badgeMat} />
+      {[1, -1].map(side => (
+        <group key={side} rotation={[0, side === 1 ? 0 : Math.PI, 0]}>
+          <mesh geometry={stem} material={stemMat} position={[0, -0.2, face]} />
+          <mesh geometry={dot} material={dotMat} position={[0, 0.46, face]} />
+        </group>
+      ))}
     </group>
   )
 }
@@ -155,24 +180,39 @@ function RobotModel() {
   )
 }
 
-const models: ReactNode[] = [<TriModel key="tri" />, <BonesModel key="bones" />, <WebModel key="web" />, <RobotModel key="robot" />]
+// El orden tiene que coincidir con el de los proyectos en content.ts
+const models: ReactNode[] = [<TriModel key="tri" />, <IntiModel key="inti" />, <WebModel key="web" />, <BonesModel key="bones" />, <RobotModel key="robot" />]
 
 function Rig() {
   const groups = useRef<(THREE.Group | null)[]>([])
   const root = useRef<THREE.Group>(null)
-  const { viewport, size } = useThree()
+  const { viewport, size, gl, scene, camera } = useThree()
   const wide = size.width > 860
+
+  // Compila los shaders de todos los modelos ahora (en paralelo, sin trabar el hilo principal) en vez de uno por uno
+  // al scrollear hasta cada proyecto. El primer frame vuelve a ocultar los que no corresponden.
+  useEffect(() => {
+    groups.current.forEach(g => { if (g) g.visible = true })
+    gl.compileAsync(scene, camera).catch(() => {})
+  }, [gl, scene, camera])
 
   useFrame((state, delta) => {
     const dt = Math.min(delta, 0.05)
     const p = projectsState.progress
+    const perPx = viewport.height / size.height // unidades 3D por píxel
+    // Celular: el modelo ocupa solo el hueco que queda libre encima del texto (entre el header y el primer renglón)
+    const rooms = projectsState.rooms
+    const i0 = Math.min(Math.max(Math.floor(p), 0), Math.max(rooms.length - 1, 0))
+    const room = rooms.length ? THREE.MathUtils.lerp(rooms[i0] ?? 0, rooms[Math.min(i0 + 1, rooms.length - 1)] ?? 0, p - i0) : 0
     if (root.current) {
-      // Escritorio: el modelo vive a la derecha. Celular: arriba.
-      root.current.position.set(wide ? viewport.width * 0.22 : 0, wide ? 0 : viewport.height * 0.2, 0)
+      // Escritorio: el modelo vive a la derecha. Celular: arriba, centrado en su hueco.
+      root.current.position.set(wide ? viewport.width * 0.22 : 0, wide ? 0 : (size.height / 2 - (NAV + room / 2)) * perPx, 0)
       root.current.rotation.x = THREE.MathUtils.lerp(root.current.rotation.x, -state.pointer.y * 0.25, 0.08)
       root.current.rotation.z = THREE.MathUtils.lerp(root.current.rotation.z, state.pointer.x * 0.1, 0.08)
     }
-    const base = Math.min(wide ? viewport.height * 0.26 : viewport.width * 0.3, 1.25)
+    const base = wide
+      ? Math.min(viewport.height * 0.26, 1.25)
+      : Math.min(viewport.width * 0.3, 1.25, (room * 0.92 * perPx) / MODEL_HEIGHT) * THREE.MathUtils.smoothstep(room, 70, 130)
     groups.current.forEach((g, i) => {
       if (!g) return
       const d = p - i
@@ -196,10 +236,41 @@ function Rig() {
   )
 }
 
+/** Mide los fps de este canvas y baja la calidad global si no los sostiene (mismo criterio que el mundo de fondo). */
+function Watchdog() {
+  const s = useRef({ time: 0, frames: 0, warm: 1.5, slow: 0 })
+  useFrame((_, delta) => {
+    const m = s.current
+    if (delta > 0.25) { m.warm = Math.max(m.warm, 0.6); return }
+    if (m.warm > 0) { m.warm -= delta; return }
+    m.time += delta; m.frames++
+    if (m.time < 1) return
+    const fps = m.frames / m.time
+    m.time = 0; m.frames = 0
+    m.slow = fps < 40 ? m.slow + 1 : 0
+    if (m.slow >= 2) { m.slow = 0; m.warm = 1.5; degrade() }
+  })
+  return null
+}
+
+function RedrawOnScroll() {
+  const invalidate = useThree(s => s.invalidate)
+  useEffect(() => {
+    let raf = 0
+    const on = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; invalidate() }) }
+    addEventListener('scroll', on, { passive: true })
+    on()
+    return () => { removeEventListener('scroll', on); cancelAnimationFrame(raf) }
+  }, [invalidate])
+  return null
+}
+
 export default function ProjectsScene() {
   const wrap = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
+  const tier = useTier()
   const isMobile = useMemo(() => matchMedia('(max-width: 860px), (pointer: coarse)').matches, [])
+  const [antialias] = useState(() => getTier() === 0)
 
   useEffect(() => {
     const el = wrap.current
@@ -215,10 +286,10 @@ export default function ProjectsScene() {
   return (
     <div ref={wrap} className="projects-canvas" aria-hidden>
       <Canvas
-        frameloop={visible ? 'always' : 'never'}
-        dpr={isMobile ? [1, 1.5] : [1, 2]}
+        frameloop={!visible ? 'never' : tier === 2 ? 'demand' : 'always'}
+        dpr={tier >= 1 || isMobile ? 1 : [1, 2]}
         camera={{ position: [0, 0, 6], fov: 40 }}
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping }}
+        gl={{ antialias, alpha: true, powerPreference: 'high-performance', toneMapping: THREE.ACESFilmicToneMapping }}
         eventSource={document.body}
         eventPrefix="client"
       >
@@ -226,6 +297,8 @@ export default function ProjectsScene() {
         <directionalLight position={[3, 4, 5]} intensity={1.6} />
         <directionalLight position={[-4, -2, 2]} intensity={0.5} color={ORANGE} />
         <Rig />
+        <Watchdog />
+        {tier === 2 && <RedrawOnScroll />}
       </Canvas>
     </div>
   )

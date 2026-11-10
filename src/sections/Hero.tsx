@@ -1,52 +1,43 @@
-import { useState } from 'react'
-import { motion } from 'motion/react'
 import { ArrowUpRight } from 'lucide-react'
 import { useI18n } from '../i18n/I18nProvider'
 import VariableProximity from '../components/VariableProximity'
-import { ease } from '../components/motion'
-import { bore } from '../three/sceneState'
-import { Magnetic, TextScramble } from '../components/effects'
+import { burst } from '../three/sceneState'
+import { Magnetic } from '../components/effects'
 
+// Sin animaciones de entrada que oculten el texto: el contenido principal se ve apenas carga el CSS.
 export default function Hero() {
   const { t, lang } = useI18n()
-  const [count, setCount] = useState(0)
-  const [idea, setIdea] = useState<number | null>(null)
-
-  const getBored = () => {
-    const n = t.hero.ideas.length
-    let next = Math.floor(Math.random() * n)
-    if (next === idea) next = (next + 1) % n
-    setIdea(next)
-    setCount(c => c + 1)
-    bore(count + 1)
-  }
-
-  const fade = (delay: number) => ({
-    initial: { opacity: 0, y: 16 },
-    animate: { opacity: 1, y: 0 },
-    transition: { delay, duration: 0.8, ease: ease.out },
-  })
+  // Los números de la franja salen de las métricas de Tricapi: una sola fuente en content.ts
+  const proof = t.projects.items.find(p => p.id === 'tricapi')?.metrics ?? []
 
   return (
     <section id="top" className="hero">
       <div className="hero-text">
         <h1 className="hero-name">
-          <VariableProximity key={lang} text={t.hero.name} rise delay={0.55} />
+          <VariableProximity key={lang} text={t.hero.name} />
         </h1>
-        <motion.p key={`lead-${lang}`} className="hero-lead" {...fade(1.1)}>{t.hero.lead}</motion.p>
-        <motion.div className="hero-actions" {...fade(1.25)}>
+        <p className="hero-role">{t.hero.role}</p>
+        <p className="hero-lead">{t.hero.lead}</p>
+        <div className="hero-actions">
           <Magnetic>
-            <button className="btn btn-accent" onClick={getBored}>
-              {count === 0 ? t.hero.bored : t.hero.boredAgain}
-            </button>
+            <a href="#projects" className="btn btn-accent" onClick={burst}>
+              {t.hero.projects} <Arrow />
+            </a>
           </Magnetic>
-          <a href="#projects" className="link-arrow">{t.hero.projects} <Arrow /></a>
-        </motion.div>
-        <p className="hero-idea" aria-live="polite">
-          {idea !== null && <TextScramble key={count} text={`${t.hero.then} ${t.hero.ideas[idea]}`} />}
-        </p>
+          <a href="#contact" className="btn btn-outline" onClick={burst}>{t.hero.contact}</a>
+        </div>
+        {proof.length > 0 && (
+          <ul className="hero-proof">
+            {proof.map(m => (
+              <li key={m.label}>
+                <strong>{m.prefix}{m.value}{m.suffix}</strong>
+                <span>{m.short ?? m.label}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-      <div className="hero-stage" aria-hidden />
+      <div className="hero-stage" onClick={burst} data-cursor={t.hero.morph} aria-hidden />
     </section>
   )
 }

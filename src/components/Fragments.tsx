@@ -2,26 +2,7 @@ import { AnimatePresence, motion, useInView } from 'motion/react'
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/I18nProvider'
 import { ease } from './motion'
-import { Lock } from 'lucide-react'
-
-/** Ventana de navegador con el dominio real del producto y su logo. */
-export function BrowserFragment({ domain, word, logo }: { domain: string; word: string; logo?: string }) {
-  return (
-    <div className="frag frag-browser" data-ui>
-      <div className="browser-bar">
-        <span className="browser-dots"><i /><i /><i /></span>
-        <span className="browser-url">
-          <Lock size={12} strokeWidth={2.2} aria-hidden />
-          {domain}
-        </span>
-      </div>
-      <div className="browser-body">
-        {logo && <span className="browser-logo" style={{ maskImage: `url(${logo})`, WebkitMaskImage: `url(${logo})` }} aria-hidden />}
-        <span className="browser-word">{word}<span className="browser-dot">.</span></span>
-      </div>
-    </div>
-  )
-}
+import { isLite, prefersReducedMotion } from '../lib/perf'
 
 // Sprites en pixel art: X = hueso, O = ojos
 const SKULL = ['..XXXXX..', '.XXXXXXX.', 'XXXXXXXXX', 'XXOOXOOXX', 'XXOOXOOXX', 'XXXXXXXXX', '.XXX.XXX.', '..XXXXX..', '..X.X.X..']
@@ -48,6 +29,8 @@ export function GameFragment({ play = true }: { play?: boolean }) {
     const ctx = c.getContext('2d')!
     let w = 0, h = 0, u = 4, raf = 0, last = 0, visible = false
     const dpr = Math.min(devicePixelRatio, 2)
+    // Con "reducir movimiento" o en equipos lentos el fondo queda quieto hasta que se juega
+    const calm = prefersReducedMotion() || isLite()
     const g = { y: 0, vy: 0, speed: 0, dist: 0, obstacles: [] as { x: number; tall: boolean }[], mode: 'idle' as 'idle' | 'run' | 'over' }
     const stars = Array.from({ length: 40 }, () => ({ x: Math.random(), y: Math.random() * 0.6, s: Math.random() }))
 
@@ -103,17 +86,18 @@ export function GameFragment({ play = true }: { play?: boolean }) {
         // Choque: caja de la calavera contra la de cada hueso
         const px = w * 0.16 + u, pw = 7 * u, py = g.y
         if (g.obstacles.some(o => o.x < px + pw && o.x + 9 * u > px && py < (o.tall ? 8 : 4) * u - u)) { g.mode = 'over'; setState('over') }
-      } else {
+      } else if (!calm) {
         g.dist += w * 0.06 * dt
       }
       draw()
-      if (visible) raf = requestAnimationFrame(step)
+      if (visible && (g.mode === 'run' || !calm)) raf = requestAnimationFrame(step)
     }
     const kick = () => { if (!raf && visible) { last = 0; raf = requestAnimationFrame(step) } }
 
     jumpRef.current = () => {
       if (g.mode !== 'run') { reset(); g.mode = 'run'; setState('run') }
       if (g.y === 0) g.vy = h * 1.25
+      kick()
     }
 
     const ro = new ResizeObserver(resize)

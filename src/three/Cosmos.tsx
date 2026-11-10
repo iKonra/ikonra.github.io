@@ -301,7 +301,7 @@ function Warp({ count }: { count: number }) {
   return <lineSegments ref={ref} geometry={geo} material={mat} />
 }
 
-export default function Cosmos({ mobile }: { mobile: boolean }) {
+export default function Cosmos({ mobile, warp }: { mobile: boolean; warp: boolean }) {
   const { size } = useThree()
   // En pantallas angostas los planetas se acercan al centro para que se vean
   const xScale = Math.min(1, Math.max(0.45, size.width / size.height / 1.6))
@@ -309,7 +309,7 @@ export default function Cosmos({ mobile }: { mobile: boolean }) {
     <>
       {planets.map((p, i) => <Planet key={i} spec={p} xScale={xScale} />)}
       <ShootingStars />
-      <Warp count={mobile ? 140 : 320} />
+      {warp && <Warp count={mobile ? 140 : 320} />}
     </>
   )
 }
