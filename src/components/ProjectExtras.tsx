@@ -29,18 +29,6 @@ export function Metrics({ items, play }: { items: Metric[]; play: boolean }) {
   )
 }
 
-/** Proyecto destacado dentro de otro (ej. La Beduina dentro de Inti). El resultado solo aparece si está cargado en content.ts. */
-export function Featured({ data }: { data: NonNullable<Project['featured']> }) {
-  return (
-    <div className="featured">
-      <span className="featured-label">{data.label}</span>
-      <strong className="featured-name">{data.name}</strong>
-      <p className="featured-text">{data.text}</p>
-      {data.result && <p className="featured-result">{data.result}</p>}
-    </div>
-  )
-}
-
 /** Juego del estudio: nombre, qué es y en qué estado está. */
 export function GameCard({ data }: { data: NonNullable<Project['game']> }) {
   return (

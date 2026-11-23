@@ -72,24 +72,32 @@ function TriModel() {
   )
 }
 
-/** Inti: un sello oscuro con una "i" (tallo blanco y punto dorado), de los dos lados. El verde del panel queda de fondo. */
+/** Rayo del sol: un huso que se afina en las dos puntas, girado alrededor del eje Y. */
+function rayGeometry(length: number, halfWidth: number) {
+  const steps = 18
+  const profile = Array.from({ length: steps + 1 }, (_, i) => {
+    const t = i / steps
+    return new THREE.Vector2(Math.sin(Math.PI * t) ** 0.7 * halfWidth, (t - 0.5) * length)
+  })
+  return new THREE.LatheGeometry(profile, 20)
+}
+
+/** Inti: el sol del logo. Un anillo blanco y ocho rayos separados: los de los puntos cardinales blancos y los diagonales azules. */
 function IntiModel() {
-  const badge = useMemo(() => new RoundedBoxGeometry(1.7, 1.7, 0.3, 6, 0.28), [])
-  const stem = useMemo(() => new RoundedBoxGeometry(0.34, 0.9, 0.2, 4, 0.1), [])
-  const dot = useMemo(() => new THREE.SphereGeometry(0.21, 24, 16), [])
-  const badgeMat = useMemo(() => new THREE.MeshPhysicalMaterial({ color: '#0a1b16', roughness: 0.25, metalness: 0.2, clearcoat: 1, clearcoatRoughness: 0.08 }), [])
-  const stemMat = useMemo(() => new THREE.MeshPhysicalMaterial({ color: '#f7f5ff', roughness: 0.35, clearcoat: 0.6 }), [])
-  const dotMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ffc933', emissive: '#ffb300', emissiveIntensity: 0.55, roughness: 0.3 }), [])
-  const face = 0.15 + 0.1
+  const ring = useMemo(() => new THREE.TorusGeometry(0.52, 0.075, 20, 80), [])
+  const ray = useMemo(() => rayGeometry(0.7, 0.08), [])
+  const white = useMemo(() => new THREE.MeshPhysicalMaterial({ color: '#f7f8fc', roughness: 0.28, clearcoat: 1, clearcoatRoughness: 0.08, emissive: '#ffffff', emissiveIntensity: 0.12 }), [])
+  // Azul saturado y con poco brillo especular: con barniz y el entorno de estudio se lavaba hasta verse celeste
+  const blue = useMemo(() => new THREE.MeshStandardMaterial({ color: '#0b6dff', roughness: 0.65, emissive: '#0b6dff', emissiveIntensity: 0.75, envMapIntensity: 0.25 }), [])
   return (
-    <group scale={0.95}>
-      <mesh geometry={badge} material={badgeMat} />
-      {[1, -1].map(side => (
-        <group key={side} rotation={[0, side === 1 ? 0 : Math.PI, 0]}>
-          <mesh geometry={stem} material={stemMat} position={[0, -0.2, face]} />
-          <mesh geometry={dot} material={dotMat} position={[0, 0.46, face]} />
-        </group>
-      ))}
+    <group scale={0.85}>
+      <mesh geometry={ring} material={white} />
+      {Array.from({ length: 8 }, (_, i) => {
+        const a = (i / 8) * Math.PI * 2
+        return (
+          <mesh key={i} geometry={ray} material={i % 2 ? blue : white} position={[Math.cos(a) * 1.04, Math.sin(a) * 1.04, 0]} rotation={[0, 0, a - Math.PI / 2]} />
+        )
+      })}
     </group>
   )
 }
@@ -145,7 +153,7 @@ function WebModel() {
   )
 }
 
-/** Skoly: la cabeza de un robot que parpadea. */
+/** Bots de Discord: la cabeza de un robot que parpadea. */
 function RobotModel() {
   const eyes = useRef<THREE.Group>(null)
   const head = useMemo(() => new RoundedBoxGeometry(1.6, 1.25, 1.2, 6, 0.32), [])

@@ -3,7 +3,7 @@ import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform,
 import { useI18n } from '../i18n/I18nProvider'
 import { ParallaxComponent } from '@/components/ui/parallax-scrolling'
 import { CodeFragment, DiscordFragment, GameFragment } from '../components/Fragments'
-import { Featured, GameCard, Metrics } from '../components/ProjectExtras'
+import { GameCard, Metrics } from '../components/ProjectExtras'
 import { Arrow } from './Hero'
 import { projectsState } from '../three/projectsState'
 import type { Project } from '../i18n/content'
@@ -40,7 +40,6 @@ function PanelBody({ p, active }: { p: Project; active: boolean }) {
         </ul>
       )}
       {p.metrics && <Metrics items={p.metrics} play={active} />}
-      {p.featured && <Featured data={p.featured} />}
       {p.game && <GameCard data={p.game} />}
       {p.stack && <p className="project-stack">{p.stack}</p>}
       {p.url ? (

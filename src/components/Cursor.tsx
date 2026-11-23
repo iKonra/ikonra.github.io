@@ -36,6 +36,7 @@ export default function Cursor() {
           <motion.span
             key={label}
             className="cursor-label"
+            style={{ x: '-50%', y: '-50%' }}
             initial={{ opacity: 0, scale: 0.6 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.6, transition: { duration: 0.12 } }}

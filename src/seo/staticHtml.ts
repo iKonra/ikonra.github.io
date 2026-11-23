@@ -79,22 +79,16 @@ function block(lang: Lang) {
         ? `<ul class="inline">${p.metrics.map(m => `<li><strong>${esc(`${m.prefix ?? ''}${m.value}${m.suffix ?? ''}`)}</strong> ${esc(m.label)}${m.note ? ` — ${esc(m.note)}` : ''}</li>`).join('')}</ul>`
         : ''
       const features = p.features?.length ? `<ul>${p.features.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''
-      const featured = p.featured ? `<p><strong>${esc(p.featured.label)}: ${esc(p.featured.name)}.</strong> ${esc(p.featured.text)}${p.featured.result ? ` ${esc(p.featured.result)}` : ''}</p>` : ''
       const game = p.game ? `<p><strong>${esc(p.game.label)}: ${esc(p.game.name)}.</strong> ${esc(p.game.text)} ${esc(p.game.status)}.</p>` : ''
       const stack = p.stack ? `<p class="muted">${esc(p.stack)}</p>` : ''
       const visit = p.url ? `<p><a class="link-arrow" href="${esc(p.url)}" target="_blank" rel="noopener noreferrer">${esc(t.projects.visit)} ${esc(p.title)}</a></p>` : ''
       return `<article>
           <h3>${esc(p.title)}</h3>
           <p class="muted">${esc(p.kind)}${p.period ? ` · ${esc(p.period)}` : ''}</p>
-          <p>${esc(p.description)}</p>${features}${metrics}${featured}${game}${stack}${visit}
+          <p>${esc(p.description)}</p>${features}${metrics}${game}${stack}${visit}
         </article>`
     })
     .join('\n        ')
-
-  const heroMetrics = t.projects.items.find(p => p.id === 'tricapi')?.metrics ?? []
-  const proof = heroMetrics.length
-    ? `<ul class="hero-proof">${heroMetrics.map(m => `<li><strong>${esc(`${m.prefix ?? ''}${m.value}${m.suffix ?? ''}`)}</strong><span>${esc(m.short ?? m.label)}</span></li>`).join('')}</ul>`
-    : ''
 
   const contact = contactItems(lang)
     .map((c, i) => `<li><a class="btn ${i === 0 ? 'btn-accent' : 'btn-outline'}" href="${esc(c.href)}"${c.ext ? ' target="_blank" rel="noopener noreferrer"' : ''}>${esc(c.label)}</a></li>`)
@@ -115,7 +109,6 @@ function block(lang: Lang) {
             <a class="btn btn-accent" href="#projects${sfx}">${esc(t.hero.projects)}</a>
             <a class="btn btn-outline" href="#contact${sfx}">${esc(t.hero.contact)}</a>
           </div>
-          ${proof}
         </div>
       </section>
       <section id="about${sfx}" class="static-block">
