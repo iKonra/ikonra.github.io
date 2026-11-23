@@ -4,7 +4,7 @@ import { useI18n } from '../i18n/I18nProvider'
 import { ease } from '../components/motion'
 import { linkProps, useContactItems } from '../components/ContactLinks'
 
-const ids = ['about', 'projects', 'journey', 'contact'] as const
+const ids = ['about', 'projects', 'stack', 'journey', 'contact'] as const
 
 export default function Nav() {
   const { t, toggle } = useI18n()

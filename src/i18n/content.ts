@@ -14,6 +14,9 @@ export const links = {
   twobones: '',
 }
 
+export type IconName = 'code' | 'server' | 'database' | 'plug' | 'cloud' | 'window' | 'game' | 'tools'
+export type StackGroup = { name: string; icon: IconName; items: string[] }
+
 export type Metric = { value: number; prefix?: string; suffix?: string; label: string; short?: string; note?: string }
 
 export type Project = {
@@ -36,7 +39,7 @@ const es = {
     title: 'Conrado De Napoli — Software Engineer · Product Engineer',
     description: 'Co-Founder de Tricapi (SaaS con 70 clientes pagos) e Inti (software a medida). Estudiante de Ingeniería en Informática (UNL).',
   },
-  nav: { about: 'Sobre mí', projects: 'Proyectos', journey: 'Trayectoria', contact: 'Contacto', menu: 'Menú', close: 'Cerrar' },
+  nav: { about: 'Sobre mí', projects: 'Proyectos', stack: 'Stack', journey: 'Trayectoria', contact: 'Contacto', menu: 'Menú', close: 'Cerrar' },
   hero: {
     name: 'Conrado De Napoli',
     role: 'Software Engineer · Product Engineer',
@@ -123,6 +126,20 @@ const es = {
     },
     game: { hint: 'Clic, toque o barra espaciadora para saltar', over: 'Fin del juego. Clic para reintentar', label: 'Mini juego de TwoBones', cursor: 'Saltar' },
   },
+  stack: {
+    title: 'Stack técnico',
+    lead: 'Tecnologías y herramientas con las que trabajo.',
+    groups: [
+      { name: 'Lenguajes', icon: 'code', items: ['JavaScript', 'Python', 'SQL', 'C#', 'HTML', 'CSS'] },
+      { name: 'Backend y testing', icon: 'server', items: ['Node.js', 'Express', 'APIs REST', 'Jest', 'Supertest'] },
+      { name: 'Datos', icon: 'database', items: ['PostgreSQL (Supabase)', 'SQLite'] },
+      { name: 'Integraciones', icon: 'plug', items: ['Meta Conversions API', 'Google Gemini', 'Kommo CRM', 'Mercado Pago', 'USDT'] },
+      { name: 'Infraestructura', icon: 'cloud', items: ['Nginx', 'Cloudflare', 'Netlify', 'PM2', 'Linux'] },
+      { name: 'Frontend', icon: 'window', items: ['React', 'Next.js'] },
+      { name: 'Videojuegos', icon: 'game', items: ['C#', 'Game design', '3D'] },
+      { name: 'Herramientas', icon: 'tools', items: ['Git', 'Claude Code', 'OpenCode', 'AutoCAD'] },
+    ] as StackGroup[],
+  },
   journey: {
     title: 'Trayectoria',
     // De más reciente a más antiguo. Las entradas sin año son las que faltan completar.
@@ -153,7 +170,7 @@ const en: Dict = {
     title: 'Conrado De Napoli — Software Engineer · Product Engineer',
     description: 'Co-Founder of Tricapi (a SaaS with 70 paying customers) and Inti (custom software). Computer Engineering student (UNL).',
   },
-  nav: { about: 'About', projects: 'Projects', journey: 'Journey', contact: 'Contact', menu: 'Menu', close: 'Close' },
+  nav: { about: 'About', projects: 'Projects', stack: 'Stack', journey: 'Journey', contact: 'Contact', menu: 'Menu', close: 'Close' },
   hero: {
     name: 'Conrado De Napoli',
     role: 'Software Engineer · Product Engineer',
@@ -239,6 +256,20 @@ const en: Dict = {
       typing: 'Skoly is typing…',
     },
     game: { hint: 'Click, tap or press space to jump', over: 'Game over. Click to retry', label: 'TwoBones mini game', cursor: 'Jump' },
+  },
+  stack: {
+    title: 'Tech stack',
+    lead: 'Technologies and tools I work with.',
+    groups: [
+      { name: 'Languages', icon: 'code', items: ['JavaScript', 'Python', 'SQL', 'C#', 'HTML', 'CSS'] },
+      { name: 'Backend & testing', icon: 'server', items: ['Node.js', 'Express', 'REST APIs', 'Jest', 'Supertest'] },
+      { name: 'Data', icon: 'database', items: ['PostgreSQL (Supabase)', 'SQLite'] },
+      { name: 'Integrations', icon: 'plug', items: ['Meta Conversions API', 'Google Gemini', 'Kommo CRM', 'Mercado Pago', 'USDT'] },
+      { name: 'Infrastructure', icon: 'cloud', items: ['Nginx', 'Cloudflare', 'Netlify', 'PM2', 'Linux'] },
+      { name: 'Frontend', icon: 'window', items: ['React', 'Next.js'] },
+      { name: 'Games', icon: 'game', items: ['C#', 'Game design', '3D'] },
+      { name: 'Tools', icon: 'tools', items: ['Git', 'Claude Code', 'OpenCode', 'AutoCAD'] },
+    ] as StackGroup[],
   },
   journey: {
     title: 'Journey',

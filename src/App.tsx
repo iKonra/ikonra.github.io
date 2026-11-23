@@ -4,6 +4,7 @@ import Nav from './sections/Nav'
 import Hero from './sections/Hero'
 import About from './sections/About'
 import Projects from './sections/Projects'
+import Stack from './sections/Stack'
 import Journey from './sections/Journey'
 import Contact from './sections/Contact'
 import { useLenis } from '@/hooks/useLenis'
@@ -27,6 +28,7 @@ export default function App() {
           <Hero />
           <About />
           <Projects />
+          <Stack />
           <Journey />
           <Contact />
         </main>

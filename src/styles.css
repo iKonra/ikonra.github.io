@@ -102,6 +102,13 @@ p { text-wrap: pretty; }
 .lang:active, .menu-btn:active { transform: scale(0.96); }
 @media (hover: hover) { .lang:hover, .menu-btn:hover { background: var(--surface-2); } }
 .menu-btn { display: none; }
+/* Con cinco enlaces, en pantallas medianas el header se compacta para no desbordar */
+@media (min-width: 861px) and (max-width: 1100px) {
+  .bar { column-gap: 12px; }
+  .bar-links { gap: 12px; font-size: 0.85rem; }
+  .bar-icon { min-width: 34px; padding: 0 6px; }
+  .bar-contact { margin-right: 2px; }
+}
 .sheet {
   position: fixed; inset: 64px 0 0; background: var(--ground); z-index: 49;
   display: flex; flex-direction: column; gap: 8px; padding: 32px var(--gutter);
@@ -363,6 +370,39 @@ main { position: relative; z-index: 1; }
   .panel-fragment { width: min(290px, 30vw); }
 }
 
+/* Stack técnico (pixel art) */
+.tech .section-lead { margin-top: 20px; color: var(--muted); max-width: 44ch; }
+.pixel-wrap { margin-top: clamp(24px, 4vw, 40px); display: flex; justify-content: center; }
+.pixel-scene {
+  display: block; height: auto; max-width: 100%; image-rendering: pixelated; background: #0a0913; cursor: pointer; touch-action: manipulation;
+  box-shadow: 0 0 0 2px rgba(243, 239, 231, 0.2), 0 0 0 6px var(--ground), 0 0 0 8px rgba(243, 239, 231, 0.08);
+}
+.tech-grid { margin-top: clamp(28px, 3.5vw, 44px); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1100px) { .tech-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .tech-grid { grid-template-columns: 1fr; gap: 12px; }
+  .tech-card { padding: 16px 16px 18px; gap: 12px; }
+  .tech-card .px-icon { width: 34px; height: 34px; }
+  .tech-chips { gap: 6px; }
+  .tech-chips li { font-size: 0.82rem; padding: 3px 8px; }
+}
+.tech-grid > li { display: grid; }
+.tech-card {
+  --n: 6px; display: grid; gap: 16px; align-content: start; padding: 22px 20px 24px; background: var(--surface);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--c) 55%, transparent);
+  clip-path: polygon(0 var(--n), var(--n) var(--n), var(--n) 0, calc(100% - var(--n)) 0, calc(100% - var(--n)) var(--n), 100% var(--n), 100% calc(100% - var(--n)), calc(100% - var(--n)) calc(100% - var(--n)), calc(100% - var(--n)) 100%, var(--n) 100%, var(--n) calc(100% - var(--n)), 0 calc(100% - var(--n)));
+}
+.tech-card header { display: flex; align-items: center; gap: 14px; }
+.tech-card h3 { font: 700 0.8rem var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--c); }
+.tech-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.tech-chips li { padding: 4px 10px; background: rgba(243, 239, 231, 0.06); box-shadow: 0 0 0 1.5px rgba(243, 239, 231, 0.16); font-size: 0.9rem; font-weight: 600; line-height: 1.35; }
+.px-icon { flex: none; image-rendering: pixelated; }
+.px-X { fill: var(--c); }
+.px-o { fill: #f3efe7; }
+.px-d { fill: color-mix(in srgb, var(--c) 45%, #000); }
+@media (hover: hover) { .tech-card:hover .px-icon { animation: px-hop 0.5s steps(5); } }
+@keyframes px-hop { 40% { transform: translateY(-6px); } }
+
 /* Trayectoria: títulos que se rellenan */
 .rows { margin-top: clamp(40px, 6vw, 80px); display: grid; gap: clamp(40px, 7vh, 88px); }
 .row { display: grid; grid-template-columns: minmax(110px, 2fr) 10fr; column-gap: 24px; row-gap: 10px; align-items: baseline; }
@@ -437,7 +477,7 @@ html.lite .dock { box-shadow: none; }
 @media (prefers-reduced-motion: reduce) {
   .grain { animation: none; inset: 0; }
   .world { animation: none; }
-  .game-hint, .dc-dots i { animation: none; }
+  .game-hint, .dc-dots i, .px-icon { animation: none !important; }
   .cursor, .stardust { display: none; }
   .btn, .bar-icon, .dock-item, .arrow { transition: none; }
 }

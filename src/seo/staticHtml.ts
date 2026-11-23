@@ -71,7 +71,7 @@ function contactItems(lang: Lang) {
 function block(lang: Lang) {
   const t = dictionaries[lang]
   const sfx = lang === 'es' ? '' : '-en' // los ids no se pueden repetir entre los dos idiomas
-  const sections = ['about', 'projects', 'journey', 'contact'] as const
+  const sections = ['about', 'projects', 'stack', 'journey', 'contact'] as const
 
   const projects = t.projects.items
     .map(p => {
@@ -128,6 +128,11 @@ function block(lang: Lang) {
         <h2>${esc(t.projects.title)}</h2>
         <p class="muted">${esc(t.projects.lead)}</p>
         ${projects}
+      </section>
+      <section id="stack${sfx}" class="static-block">
+        <h2>${esc(t.stack.title)}</h2>
+        <p class="muted">${esc(t.stack.lead)}</p>
+        <dl>${t.stack.groups.map(g => `<div><dt>${esc(g.name)}</dt><dd>${esc(g.items.join(', '))}</dd></div>`).join('')}</dl>
       </section>
       <section id="journey${sfx}" class="static-block">
         <h2>${esc(t.journey.title)}</h2>

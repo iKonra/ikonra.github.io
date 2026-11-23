@@ -3,18 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/I18nProvider'
 import { ease } from './motion'
 import { isLite, prefersReducedMotion } from '../lib/perf'
-
-// Sprites en pixel art: X = hueso, O = ojos
-const SKULL = ['..XXXXX..', '.XXXXXXX.', 'XXXXXXXXX', 'XXOOXOOXX', 'XXOOXOOXX', 'XXXXXXXXX', '.XXX.XXX.', '..XXXXX..', '..X.X.X..']
-const BONE = ['XX.....XX', '.XXXXXXX.', '.XXXXXXX.', 'XX.....XX']
-
-function sprite(ctx: CanvasRenderingContext2D, map: string[], x: number, y: number, u: number, body: string, eye: string) {
-  map.forEach((row, j) => [...row].forEach((c, i) => {
-    if (c === '.') return
-    ctx.fillStyle = c === 'O' ? eye : body
-    ctx.fillRect(Math.round(x + i * u), Math.round(y + j * u), Math.ceil(u), Math.ceil(u))
-  }))
-}
+import { BONE, SKULL, sprite } from './pixelArt'
 
 /** Mini juego de TwoBones: una calavera que salta huesos. Tocá, hacé click o apretá espacio. */
 export function GameFragment({ play = true }: { play?: boolean }) {
