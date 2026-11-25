@@ -1,0 +1,10 @@
+Datos e imágenes / Data and imagery
+
+NASA SVS, Deep Star Maps 2020 (Gaia) — https://svs.gsfc.nasa.gov/4851
+NASA SVS, CGI Moon Kit — https://svs.gsfc.nasa.gov/4720
+NASA/JPL-Caltech/ESO/R. Hurt (CC BY 4.0, modificada / modified) — https://www.eso.org/public/images/eso1339g/
+Solar System Scope (CC BY 4.0, modificadas / modified) — https://www.solarsystemscope.com/textures/
+Yale Bright Star Catalog — http://tdc-www.harvard.edu/catalogs/bsc5.html
+d3-celestial — https://github.com/ofrohn/d3-celestial
+
+CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
