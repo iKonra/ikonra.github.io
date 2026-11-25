@@ -1,8 +1,9 @@
 // Estado del viaje y traducción de scroll a t. Sin three.js: lo usan tanto la escena 3D como la interfaz.
 
 /* ------------------------------------------------------------------ escalas de t
-   0 inicio · 1→2 Sobre mí · 3→4 agujero negro · 5…9 un mundo por proyecto · 10→11 Stack · 12→13 Trayectoria · 14 Contacto */
-export const T = { top: 0, about: 1, aboutEnd: 2, hole: 3, horizon: 4, worlds: 5, stack: 10, stackEnd: 11, journey: 12, journeyEnd: 13, contact: 14 } as const
+   0 inicio · 1→2 Sobre mí · 3→4 agujero negro · 5…9 un mundo por proyecto · 10→11 Stack · 12→13 Trayectoria · 14 Contacto
+   14→15 caída a la Tierra · 15→17 ciudad · 17→18.4 habitación · 18.4→19 píxel · 19→20 Big Bang: 20 es otra vez el inicio */
+export const T = { top: 0, about: 1, aboutEnd: 2, hole: 3, horizon: 4, worlds: 5, stack: 10, stackEnd: 11, journey: 12, journeyEnd: 13, contact: 14, bang: 19, end: 20 } as const
 export const WORLD_COUNT = 5
 
 /** Colores de cada mundo: tiñen el polvo, las luces, la grieta y la interfaz. */
@@ -12,6 +13,8 @@ export const worldColors = ['#ff7a3c', '#4aa3ff', '#5b7cff', '#ff5a1f', '#7c86ff
 export const J = {
   /** t del scroll y t suavizado que usa la cámara. */
   target: 0,
+  /** t sin plegar: llega a 20. `t` vuelve a 0 en el Big Bang final, así la galaxia es la misma del inicio. */
+  raw: 0,
   t: 0,
   /** Velocidad suavizada de t, y la misma en 0…1 para los efectos de warp. */
   v: 0,
@@ -22,6 +25,8 @@ export const J = {
   px: 0, py: 0, mx: 0, my: 0,
   /** Big Bang: 0 = singularidad, 1 = galaxia formada. */
   birth: 0,
+  /** Cuántas veces se cerró el bucle. */
+  loops: 0,
   narrow: false,
   /** Modo explorar: giro libre de la cámara (radianes). */
   yaw: 0, pitch: 0, yawT: 0, pitchT: 0,
@@ -71,7 +76,11 @@ const rect = (id: string) => {
   return { top: r.top + scrollY, bottom: r.bottom + scrollY }
 }
 
-export const layout = { vh: 1, max: 1 }
+/** `loop`: la página sigue después de Contacto y se cierra en un bucle. `contact`: scroll donde frena Contacto. */
+export const layout = { vh: 1, max: 1, loop: false, contact: 1 }
+
+/** Ritmo de la caída: fracción del tramo → t. Más lento donde hay algo para mirar o leer. */
+const descent: [number, number][] = [[0.1, 15], [0.4, 16.9], [0.53, 17.75], [0.66, 18.2], [0.71, 18.35], [0.86, 19], [0.965, 19.94], [1, 20]]
 
 function measure() {
   const vh = innerHeight
@@ -85,7 +94,17 @@ function measure() {
   if (w) { worldsTop = w.top; worldsLen = Math.max(1, w.bottom - vh - w.top); push(w.top, T.worlds); push(w.bottom - vh, T.worlds + WORLD_COUNT - 1) }
   if (s) { push(s.top - vh * 0.25, T.stack); push(s.bottom - vh * 0.8, T.stackEnd) }
   if (j) { push(j.top - vh * 0.15, T.journey); push(j.bottom - vh * 0.75, T.journeyEnd) }
-  push(layout.max, T.contact)
+  const c = rect('contact'), d = rect('descent')
+  layout.loop = !!c && !!d && d.bottom - d.top > vh
+  layout.contact = layout.loop ? Math.min(c!.bottom - vh, layout.max) : layout.max
+  push(layout.contact, T.contact)
+  if (layout.loop) {
+    // Contacto se va por arriba mientras empieza la caída
+    push(layout.contact + vh * 0.12, T.contact)
+    push(layout.contact + vh, 14.34)
+    const a = layout.contact + vh, len = layout.max - a
+    descent.forEach(([f, t]) => push(a + len * f, t))
+  }
   anchors = out
 }
 
@@ -146,6 +165,10 @@ const LY_KM = 9.4607e12
 const marks: [number, number][] = [
   [0, 100000], [1, 30000], [2, 28000], [3, 26700], [4, 26000], [5, 7500], [6, 1344], [7, 520], [8, 88], [9, 4.24],
   [10, 6e9 / LY_KM], [11, 4.5e9 / LY_KM], [12, 1.4e9 / LY_KM], [13, 1.2e9 / LY_KM], [13.5, 384400 / LY_KM], [13.85, 36000 / LY_KM], [14, 408 / LY_KM],
+  [14.7, 90 / LY_KM], [15, 2.6 / LY_KM], [15.5, 0.9 / LY_KM], [16, 0.26 / LY_KM], [16.5, 0.062 / LY_KM], [16.9, 0.025 / LY_KM],
+  // adentro: distancia a la pantalla
+  [16.901, 0.05 / LY_KM], [17.3, 0.01 / LY_KM], [17.6, 0.0036 / LY_KM], [18, 0.0015 / LY_KM], [18.35, 6.2e-4 / LY_KM], [19, 4e-7 / LY_KM],
+  [19.001, 4e-7 / LY_KM], [19.25, 1], [19.85, 100000], [20, 100000],
 ]
 export function distanceLy(t: number) {
   let i = 0

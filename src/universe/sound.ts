@@ -20,15 +20,22 @@ const chords: [number, number[]][] = [
   [11.5, [41, 48, 52, 57, 60, 64]],
   [13.3, [43, 50, 55, 59, 62, 69]],
   [13.75, [38, 45, 50, 57, 62, 66]],
+  // el descenso: nubes, ciudad, la ventana, la habitación, el píxel y otra vez el principio
+  [14.45, [34, 41, 50, 53, 57, 65]],
+  [15.1, [36, 43, 50, 55, 58, 62]],
+  [16.3, [41, 48, 53, 57, 60, 67]],
+  [17.2, [38, 45, 54, 57, 61, 66]],
+  [18.4, [39, 46, 51, 58, 63, 70]],
+  [19, [38, 45, 52, 57, 61, 66]],
 ]
 
 type Engine = {
   ctx: AudioContext; master: GainNode; bus: GainNode; wet: GainNode; filter: BiquadFilterNode
-  voices: OscillatorNode[][]; sub: GainNode; wind: GainNode; windFilter: BiquadFilterNode; noise: AudioBuffer
+  voices: OscillatorNode[][]; pad: GainNode; sub: GainNode; wind: GainNode; windFilter: BiquadFilterNode; noise: AudioBuffer
 }
 
 let e: Engine | null = null
-let timer = 0, bellAt = 0, chord = -1, kicked = false, hitAge = 99, tickAt = 0
+let timer = 0, bellAt = 0, chord = -1, kicked = false, hitAge = 99, tickAt = 0, lastT = 0
 let lx = 0, ly = 0, lt = 0
 
 function impulse(ctx: AudioContext, seconds: number) {
@@ -67,8 +74,10 @@ function build(): Engine {
   const padDry = ctx.createGain(), padWet = ctx.createGain()
   padDry.gain.value = 0.35
   padWet.gain.value = 0.5
-  filter.connect(padDry).connect(bus)
-  filter.connect(padWet).connect(wet)
+  const pad = ctx.createGain()
+  filter.connect(pad)
+  pad.connect(padDry).connect(bus)
+  pad.connect(padWet).connect(wet)
   const voices = chords[0][1].map((n, i) => {
     const g = ctx.createGain()
     g.gain.value = 0.055 - i * 0.004
@@ -121,7 +130,7 @@ function build(): Engine {
   wind.connect(wet)
   src.start()
 
-  return { ctx, master, bus, wet, filter, voices, sub, wind, windFilter, noise }
+  return { ctx, master, bus, wet, filter, voices, pad, sub, wind, windFilter, noise }
 }
 
 function bell(n: number, level: number) {
@@ -185,7 +194,7 @@ function boom(level: number, seconds: number) {
 
 function update() {
   if (!e) return
-  const { ctx, voices, filter, sub, wind, windFilter } = e
+  const { ctx, voices, pad, filter, sub, wind, windFilter } = e
   const now = ctx.currentTime
   const t = J.force ?? scrollToT(scrollY)
   let k = 0
@@ -194,11 +203,18 @@ function update() {
     chord = k
     voices.forEach((v, i) => v.forEach(o => o.frequency.setTargetAtTime(midi(chords[k][1][i]), now, 0.5 + i * 0.12)))
   }
-  const rush = Math.max(J.warp, J.tunnel)
+  // el aire de la caída, y casi silencio al llegar a la ventana
+  const step = Math.abs(t - lastT)
+  const fall = win(t, 14.5, 14.95, 16.1, 16.9) * (0.35 + Math.min(step * 9, 0.65))
+  const quiet = win(t, 16.5, 17.1, 18.35, 18.85)
+  if (lastT < 19 && t >= 19 && step < 2) boom(0.55, 3.2)
+  lastT = t
+  pad.gain.setTargetAtTime(1 - 0.72 * quiet, now, 0.6)
+  const rush = Math.max(J.warp, J.tunnel, fall)
   filter.frequency.setTargetAtTime(520 + rush * 1500 + (J.my + 1) * 160, now, 0.35)
-  wind.gain.setTargetAtTime(J.warp * 0.16 + J.tunnel * 0.22, now, 0.25)
+  wind.gain.setTargetAtTime(J.warp * 0.16 + J.tunnel * 0.22 + fall * 0.2, now, 0.25)
   windFilter.frequency.setTargetAtTime(240 + rush * 1900, now, 0.3)
-  sub.gain.setTargetAtTime(win(t, 2.8, 3.3, 4.1, 4.5) * 0.14, now, 0.6)
+  sub.gain.setTargetAtTime(win(t, 2.8, 3.3, 4.1, 4.5) * 0.14 + win(t, 18.5, 18.95, 18.99, 19.3) * 0.16, now, 0.6)
 
   if (J.kick > 0.8 && !kicked) boom(0.5, 2.6)
   kicked = J.kick > 0.3

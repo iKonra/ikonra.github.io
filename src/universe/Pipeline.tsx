@@ -163,7 +163,7 @@ function mat(fragmentShader: string, uniforms: Record<string, THREE.IUniform>, b
 }
 
 /** La grieta se adapta al lugar: fina y densa entre el hielo, ancha en la nebulosa, casi nula en pleno salto. */
-const riftLevel = () => (1 - J.tunnel * 0.8) * (J.explore ? 0.6 : 1)
+const riftLevel = () => (1 - J.tunnel * 0.8) * (J.explore ? 0.6 : 1) * (1 - 0.6 * win(J.raw, 16.5, 17.2, 19, 19.2))
 function riftCells() {
   const t = J.t
   if (t > 9.6 && t < 11.6) return 15
@@ -178,8 +178,8 @@ const hyper = new THREE.Color('#5f8dff')
 /** Fogonazo del Big Bang y de la salida de cada salto. */
 function flash() {
   const b = J.birth > 0 && J.birth < 0.5 ? Math.exp(-J.birth * 12) * 0.8 : 0
-  const s = (c: number) => Math.exp(-Math.pow((J.t - c) / 0.05, 2))
-  return b + (s(2.5) * 0.3 + s(4.5) * 0.42) * Math.min(1, 0.25 + J.tunnel)
+  const s = (c: number) => Math.exp(-Math.pow((J.raw - c) / 0.05, 2))
+  return b + s(19) * 0.5 + (s(2.5) * 0.3 + s(4.5) * 0.42) * Math.min(1, 0.25 + J.tunnel)
 }
 
 export default function Pipeline({ q }: { q: Quality }) {
@@ -299,7 +299,7 @@ export default function Pipeline({ q }: { q: Quality }) {
     u.uTime.value += dt
     u.uBloom.value = pose.bloom * (1 - J.tunnel * 0.5)
     // el ojo se acostumbra: dentro de los túneles y pegado al disco, menos exposición
-    u.uExposure.value = damp(u.uExposure.value, (1 - J.tunnel * 0.36) * (1 - 0.34 * win(J.t, 3.62, 3.95, 4.5, 4.6)), 5, dt)
+    u.uExposure.value = damp(u.uExposure.value, (1 - J.tunnel * 0.36) * (1 - 0.34 * win(J.t, 3.62, 3.95, 4.5, 4.6)) * (1 + 0.35 * win(J.raw, 15, 15.3, 16.7, 17.3)), 5, dt)
     u.uWarp.value = q.warp ? J.warp : 0
     u.uTunnel.value = q.warp ? J.tunnel : 0
     u.uFlash.value = flash()

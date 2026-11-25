@@ -6,6 +6,7 @@ import { linkProps, useContactItems } from '../components/ContactLinks'
 import LangPicker from '../components/LangPicker'
 import Readout from '../components/Readout'
 import Tools from '../components/Tools'
+import { layout } from '../universe/state'
 
 const ids = ['about', 'projects', 'stack', 'journey', 'contact'] as const
 
@@ -16,7 +17,7 @@ export default function Nav() {
   const contact = useContactItems()
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8)
+    const onScroll = () => setScrolled(window.scrollY > 8 && !(layout.loop && window.scrollY > layout.max - 8))
     onScroll()
     addEventListener('scroll', onScroll, { passive: true })
     return () => removeEventListener('scroll', onScroll)

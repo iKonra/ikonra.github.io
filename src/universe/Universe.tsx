@@ -4,6 +4,10 @@ import * as THREE from 'three'
 import { degrade, prefersReducedMotion, useTier } from '../lib/perf'
 import Belt from './Belt'
 import BlackHole from './BlackHole'
+import City from './descent/City'
+import Room from './descent/Room'
+import Veil from './descent/Veil'
+import type { ScreenText } from './descent/screen'
 import Earth from './Earth'
 import Env from './Env'
 import Galaxy from './Galaxy'
@@ -69,7 +73,7 @@ function Resolution({ dpr }: { dpr: (w: number, h: number) => number }) {
   return null
 }
 
-export default function Universe({ title }: { title: string }) {
+export default function Universe({ title, screen }: { title: string; screen: ScreenText }) {
   const tier = useTier()
   const mobile = useMemo(() => matchMedia('(max-width: 860px), (pointer: coarse)').matches, [])
   const still = useMemo(prefersReducedMotion, [])
@@ -112,6 +116,7 @@ export default function Universe({ title }: { title: string }) {
         <Belt q={q} />
         <Saturn q={q} />
         <Earth q={q} />
+        {!still && <><City q={q} /><Room q={q} text={screen} /><Veil /></>}
         <Tunnel />
         <Ship />
         <Pipeline q={q} />

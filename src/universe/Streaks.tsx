@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { starColor } from './glsl'
-import { J, pose, smooth } from './journey'
+import { J, pose, smooth, win } from './journey'
 import type { Quality } from './quality'
 
 // Estrellas cercanas en capas: un volumen que se repite alrededor de la cámara (paralaje infinito).
@@ -86,7 +86,7 @@ export default function Streaks({ q }: { q: Quality }) {
     u.uMaxLen.value = size.height * viewport.dpr * 0.55
     u.uBlue.value = J.warp
     // frente a la galaxia entera no hay estrellas cercanas: aparecen al zambullirse
-    u.uI.value = (0.12 + 0.88 * smooth(0.35, 0.9, J.t)) * (1 - J.tunnel) * pose.stars * 0.9
+    u.uI.value = (0.12 + 0.88 * smooth(0.35, 0.9, J.t)) * (1 - J.tunnel) * pose.stars * 0.9 * (1 - win(J.raw, 14.3, 14.7, 19, 19.001))
   })
 
   return <mesh geometry={geo} material={mat} frustumCulled={false} renderOrder={-10} />

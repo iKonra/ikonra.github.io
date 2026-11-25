@@ -2,9 +2,9 @@ import { X } from 'lucide-react'
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { useI18n } from '../i18n/I18nProvider'
 import { exploreFlag } from '../lib/flags'
-import { interceptAnchors, travelTo, travelToId } from '../lib/scroll'
+import { interceptAnchors, travelTo, travelToId, watchLoop } from '../lib/scroll'
 import { useTicker } from '../lib/ticker'
-import { J, T, beacon, layout, tToScroll, watchLayout } from '../universe/state'
+import { J, T, beacon, layout, smooth, tToScroll, watchLayout } from '../universe/state'
 import Readout from './Readout'
 import Tools from './Tools'
 
@@ -32,8 +32,10 @@ function Rail() {
     let i = 0
     while (i < stops.length - 2 && v > stops[i + 1]) i++
     const f = Math.min(Math.max((v - stops[i]) / (stops[i + 1] - stops[i]), 0), 1)
-    fill.current?.style.setProperty('--p', String((i + f) / (stops.length - 1)))
-    setActive(f > 0.5 ? i + 1 : i)
+    // al cerrar el bucle, la ruta vuelve a cero
+    const back = smooth(T.bang + 0.1, T.end - 0.1, v)
+    fill.current?.style.setProperty('--p', String(((i + f) / (stops.length - 1)) * (1 - back)))
+    setActive(back > 0.5 ? 0 : f > 0.5 ? i + 1 : i)
   })
 
   return (
@@ -45,7 +47,7 @@ function Rail() {
             <button
               className="rail-stop"
               aria-current={active === i ? 'step' : undefined}
-              onClick={() => travelTo(s === T.top ? 0 : s === T.contact ? layout.max : tToScroll(s))}
+              onClick={() => travelTo(s === T.top ? 0 : s === T.contact ? layout.contact : tToScroll(s))}
             >
               <span className="rail-star" aria-hidden />
               <span className="rail-label"><strong>{labels[i][0]}</strong><em>{labels[i][1]}</em></span>
@@ -60,7 +62,7 @@ function Rail() {
 /** Consola inferior: lugar, distancia y controles. La línea de arriba marca el avance del viaje. */
 function Console() {
   const bar = useRef<HTMLSpanElement>(null)
-  useTicker(v => { if (bar.current) bar.current.style.transform = `scaleX(${v / T.contact})` })
+  useTicker(v => { if (bar.current) bar.current.style.transform = `scaleX(${Math.min(v / T.contact, 1) * (1 - smooth(T.bang + 0.1, T.end - 0.1, v))})` })
   return (
     <div className="console" data-ui>
       <span className="console-bar" aria-hidden><span ref={bar} /></span>
@@ -135,9 +137,10 @@ export default function Hud() {
   useEffect(() => {
     const unwatch = watchLayout()
     const release = interceptAnchors()
+    const unloop = watchLoop()
     const id = location.hash.slice(1)
     const raf = id ? requestAnimationFrame(() => { travelToId(id, true) }) : 0
-    return () => { unwatch(); release(); cancelAnimationFrame(raf) }
+    return () => { unwatch(); release(); unloop(); cancelAnimationFrame(raf) }
   }, [])
   return (
     <>

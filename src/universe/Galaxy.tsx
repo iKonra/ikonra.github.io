@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { image, tex } from './assets'
 import { hash } from './glsl'
-import { C, J, damp, smooth } from './journey'
+import { C, J, T, damp, smooth } from './journey'
 import type { Quality } from './quality'
 
 // La Vía Láctea: cada punto se ubica según el brillo de la reconstrucción de NASA/JPL-Caltech/ESO (R. Hurt).
@@ -214,7 +214,8 @@ export default function Galaxy({ q }: { q: Quality }) {
     if (!g.visible) return
     const u = m.pts.uniforms, s = st.current
     u.uTime.value += dt
-    if (J.ready && J.warm) J.birth = Math.min(1, J.birth + dt / 3.6)
+    // al cerrar el bucle el nacimiento lo maneja el scroll (Rig)
+    if (J.ready && J.warm && J.raw < T.bang) J.birth = Math.min(1, J.birth + dt / 3.6)
     u.uBirth.value = J.birth
     J.kick = Math.max(0, J.kick - dt / 1.5)
     u.uKick.value = J.kick

@@ -153,8 +153,12 @@ const es = {
     cv: 'Descargar CV',
     quick: 'Contacto rápido',
   },
+  /** Frases de la caída, después de Contacto. */
+  descent: ['Una de todas estas luces.', 'Una ventana encendida.', 'Aquí empezó este universo.', 'Y en un píxel, todo vuelve a empezar.'],
   hud: {
     distance: 'Distancia a la Tierra',
+    altitude: 'Altitud',
+    toScreen: 'Distancia a la pantalla',
     ly: 'años luz',
     /** Va entre «millones» y «km»: «4500 millones de km». */
     of: 'de',
@@ -167,7 +171,7 @@ const es = {
     explore: 'Modo explorar',
     exit: 'Salir',
     hint: 'Arrastrar para mirar · Desplazar para viajar · Esc para salir',
-    places: { galaxy: 'Vía Láctea', nebula: 'Nebulosa', jump: 'Velocidad de la luz', hole: 'Sagitario A*', wormhole: 'Agujero de gusano', belt: 'Cinturón de Kuiper', saturn: 'Saturno', moon: 'La Luna', earth: 'La Tierra' },
+    places: { galaxy: 'Vía Láctea', nebula: 'Nebulosa', jump: 'Velocidad de la luz', hole: 'Sagitario A*', wormhole: 'Agujero de gusano', belt: 'Cinturón de Kuiper', saturn: 'Saturno', moon: 'La Luna', earth: 'La Tierra', clouds: 'Las nubes', city: 'La ciudad', window: 'Una ventana', room: 'La habitación', screen: 'El monitor', pixel: 'Un píxel', bang: 'Big Bang' },
     beacon: 'Argentina',
   },
   lang: { label: 'Idioma' },
@@ -299,8 +303,12 @@ const en: Dict = {
     cv: 'Download CV',
     quick: 'Quick contact',
   },
+  /** Frases de la caída, después de Contacto. */
+  descent: ['One of all these lights.', 'A single lit window.', 'This universe began here.', 'And in one pixel, it all begins again.'],
   hud: {
     distance: 'Distance to Earth',
+    altitude: 'Altitude',
+    toScreen: 'Distance to the screen',
     ly: 'light-years',
     of: '',
     route: 'Journey route',
@@ -312,7 +320,7 @@ const en: Dict = {
     explore: 'Explore mode',
     exit: 'Exit',
     hint: 'Drag to look around · Scroll to travel · Esc to exit',
-    places: { galaxy: 'Milky Way', nebula: 'Nebula', jump: 'Light speed', hole: 'Sagittarius A*', wormhole: 'Wormhole', belt: 'Kuiper Belt', saturn: 'Saturn', moon: 'The Moon', earth: 'Earth' },
+    places: { galaxy: 'Milky Way', nebula: 'Nebula', jump: 'Light speed', hole: 'Sagittarius A*', wormhole: 'Wormhole', belt: 'Kuiper Belt', saturn: 'Saturn', moon: 'The Moon', earth: 'Earth', clouds: 'The clouds', city: 'The city', window: 'A window', room: 'The room', screen: 'The monitor', pixel: 'A pixel', bang: 'Big Bang' },
     beacon: 'Argentina',
   },
   lang: { label: 'Language' },

@@ -176,7 +176,7 @@ export default function Sky({ q }: { q: Quality }) {
     s.uI.value = pose.stars * open * (1 - hole)
     d.uI.value = pose.sky * 0.62 * open
     d.uTint.value.copy(pose.tint)
-    const want = win(J.t, 11.5, 12.1, 13, 13.6) * 0.2 + win(J.t, 13.7, 14, 20, 21) * 0.11
+    const want = win(J.t, 11.5, 12.1, 13, 13.6) * 0.2 + win(J.t, 13.7, 14, 14.1, 14.4) * 0.11
     l.uI.value = damp(l.uI.value, want, 3, dt)
     l.uReveal.value = damp(l.uReveal.value, J.t > 11.5 ? 1.2 : 0, 0.8, dt)
   })

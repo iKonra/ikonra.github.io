@@ -125,8 +125,12 @@ export const de: Dict = {
     cv: 'Lebenslauf',
     quick: 'Schnellkontakt',
   },
+  /** Frases de la caída, después de Contacto. */
+  descent: ['Eines von all diesen Lichtern.', 'Ein erleuchtetes Fenster.', 'Hier begann dieses Universum.', 'Und in einem Pixel beginnt alles von vorn.'],
   hud: {
     distance: 'Entfernung zur Erde',
+    altitude: 'Höhe',
+    toScreen: 'Entfernung zum Bildschirm',
     ly: 'Lichtjahre',
     of: '',
     route: 'Reiseroute',
@@ -138,7 +142,7 @@ export const de: Dict = {
     explore: 'Erkundungsmodus',
     exit: 'Beenden',
     hint: 'Ziehen zum Umsehen · Scrollen zum Reisen · Esc zum Beenden',
-    places: { galaxy: 'Milchstraße', nebula: 'Nebel', jump: 'Lichtgeschwindigkeit', hole: 'Sagittarius A*', wormhole: 'Wurmloch', belt: 'Kuipergürtel', saturn: 'Saturn', moon: 'Der Mond', earth: 'Die Erde' },
+    places: { galaxy: 'Milchstraße', nebula: 'Nebel', jump: 'Lichtgeschwindigkeit', hole: 'Sagittarius A*', wormhole: 'Wurmloch', belt: 'Kuipergürtel', saturn: 'Saturn', moon: 'Der Mond', earth: 'Die Erde', clouds: 'Die Wolken', city: 'Die Stadt', window: 'Ein Fenster', room: 'Das Zimmer', screen: 'Der Monitor', pixel: 'Ein Pixel', bang: 'Big Bang' },
     beacon: 'Argentinien',
   },
   lang: { label: 'Sprache' },

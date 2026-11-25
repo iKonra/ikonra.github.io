@@ -7,6 +7,7 @@ import Projects from './sections/Projects'
 import Stack from './sections/Stack'
 import Journey from './sections/Journey'
 import Contact from './sections/Contact'
+import Descent from './sections/Descent'
 import { useLenis } from '@/hooks/useLenis'
 import Cursor from './components/Cursor'
 import Hud from './components/Hud'
@@ -29,6 +30,7 @@ export default function App() {
           <Stack />
           <Journey />
           <Contact />
+          <Descent />
         </main>
         <Hud />
       </MotionConfig>

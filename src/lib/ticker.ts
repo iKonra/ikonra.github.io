@@ -19,13 +19,19 @@ function frame(time: number) {
   raf = subs.size ? requestAnimationFrame(frame) : 0
 }
 
+/** Al cerrar el bucle, t pasa de 20 a 0 sin recorrer el camino de vuelta. */
+export const shiftTicker = (d: number) => { t = Math.max(0, t + d) }
+export const onTick = (f: Tick) => {
+  subs.add(f)
+  if (!raf) { last = 0; raf = requestAnimationFrame(frame) }
+  return () => { subs.delete(f) }
+}
+
 export function useTicker(cb: Tick) {
   const ref = useRef(cb)
   ref.current = cb
   useEffect(() => {
     const f: Tick = (a, b) => ref.current(a, b)
-    subs.add(f)
-    if (!raf) { last = 0; raf = requestAnimationFrame(frame) }
-    return () => { subs.delete(f) }
+    return onTick(f)
   }, [])
 }

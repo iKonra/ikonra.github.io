@@ -19,8 +19,18 @@ export function placeAt(t: number): Place {
   if (t < 11.5) return 'belt'
   if (t < 13.22) return 'saturn'
   if (t < 13.78) return 'moon'
-  return 'earth'
+  if (t < 14.7) return 'earth'
+  if (t < 15.3) return 'clouds'
+  if (t < 16.4) return 'city'
+  if (t < 17.45) return 'window'
+  if (t < 18.2) return 'room'
+  if (t < 18.62) return 'screen'
+  if (t < 19) return 'pixel'
+  return t < 19.75 ? 'bang' : 'galaxy'
 }
+
+/** Qué mide el número: distancia a la Tierra, altura en la caída o distancia a la pantalla ya adentro. */
+const measureAt = (t: number) => (t < 14.15 || t >= 19 ? 'distance' : t < 16.9 ? 'altitude' : 'toScreen')
 
 function formatter(lang: Lang, hud: Dict['hud'], short: boolean) {
   const plain = new Intl.NumberFormat(lang, { maximumSignificantDigits: 3 })
@@ -28,6 +38,8 @@ function formatter(lang: Lang, hud: Dict['hud'], short: boolean) {
   return (ly: number) => {
     if (ly >= 0.06) return `${plain.format(ly)} ${hud.ly}`
     const km = lyToKm(ly)
+    if (km < 1e-3) return km < 1e-5 ? `${plain.format(km * 1e6)} mm` : `${plain.format(km * 1e5)} cm`
+    if (km < 1) return `${plain.format(km * 1e3)} m`
     return km >= 1e6 ? `${big.format(km)} ${hud.of && !short ? `${hud.of} ` : ''}km` : `${plain.format(km)} km`
   }
 }
@@ -36,6 +48,7 @@ function formatter(lang: Lang, hud: Dict['hud'], short: boolean) {
 export default function Readout({ short = false }: { short?: boolean }) {
   const { t, lang } = useI18n()
   const [place, setPlace] = useState<Place>('galaxy')
+  const [kind, setKind] = useState<'distance' | 'altitude' | 'toScreen'>('distance')
   const dist = useRef<HTMLSpanElement>(null)
   const prev = useRef(NaN)
   const format = useMemo(() => formatter(lang, t.hud, short), [lang, t, short])
@@ -46,6 +59,7 @@ export default function Readout({ short = false }: { short?: boolean }) {
 
   useTicker(v => {
     setPlace(placeAt(v))
+    setKind(measureAt(v))
     if (!dist.current || Math.abs(v - prev.current) < 2e-4) return
     prev.current = v
     dist.current.textContent = format(distanceLy(v))
@@ -56,7 +70,7 @@ export default function Readout({ short = false }: { short?: boolean }) {
   return (
     <p className="readout" aria-hidden>
       <span className="readout-place" key={String(place) + lang}>{name}</span>
-      <span className="readout-label">{loading ? t.hud.loading : t.hud.distance}</span>
+      <span className="readout-label">{loading ? t.hud.loading : t.hud[kind]}</span>
       {loading ? <span key="load" className="readout-value">{load} %</span> : <span key="dist" className="readout-value" ref={dist} />}
     </p>
   )

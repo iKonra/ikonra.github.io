@@ -23,6 +23,19 @@ export const C = {
   earth: new THREE.Vector3(0, 0, -3800),
 }
 
+const LAT = THREE.MathUtils.degToRad(-31.63), LON = THREE.MathUtils.degToRad(-60.7)
+/** Argentina (la baliza) en coordenadas de la esfera, giro del globo al llegar y dirección resultante en el mundo. */
+export const HOME = new THREE.Vector3(Math.cos(LAT) * Math.cos(LON), Math.sin(LAT), -Math.cos(LAT) * Math.sin(LON))
+export const EARTH_R = 6.4
+export const globeTurn: [number, number, number] = [THREE.MathUtils.degToRad(-37), THREE.MathUtils.degToRad(-46), 0.06]
+const homeDir = HOME.clone().applyEuler(new THREE.Euler(...globeTurn))
+/** Punto sobre la baliza: a `k` radios del centro, corrido `x`, `y`. */
+const over = (k: number, x = 0, y = 0): [number, number, number] => [C.earth.x + homeDir.x * EARTH_R * k + x, C.earth.y + homeDir.y * EARTH_R * k + y, C.earth.z + homeDir.z * EARTH_R * k]
+
+/** Pantalla del monitor: centrada en el origen del mundo, en metros. El píxel elegido está en la galaxia de la captura. */
+export const SCREEN = { w: 0.598, h: 0.336, px: 1920, py: 1080, u: 0.62, v: 0.36 }
+export const PIXEL: [number, number] = [((Math.floor(SCREEN.u * SCREEN.px) + 0.5) / SCREEN.px - 0.5) * SCREEN.w, ((Math.floor(SCREEN.v * SCREEN.py) + 0.5) / SCREEN.py - 0.5) * SCREEN.h]
+
 export type Key = {
   t: number
   pos: [number, number, number]
@@ -63,8 +76,11 @@ const worldKeys: Key[] = W.flatMap((w, i): Key[] => {
   ]
 })
 
+const start: Key =
+  { t: 0, pos: [-4, 30, 92], look: [0, -1, 0], fov: 42, roll: -0.16, shift: [0.4, 0.02], shiftN: [0.04, -0.42], farN: 1.35, sky: 0.0, stars: 0.55, bloom: 0.9, light: [0.3, 0.6, -0.7], lightColor: '#ffe9c9', tint: '#9db8ff', ship: [0.5, -0.5, 1], shipN: [0.62, -0.42, 0.5] }
+
 export const keys: Key[] = [
-  { t: 0, pos: [-4, 30, 92], look: [0, -1, 0], fov: 42, roll: -0.16, shift: [0.4, 0.02], shiftN: [0.04, -0.42], farN: 1.35, sky: 0.0, stars: 0.55, bloom: 0.9, light: [0.3, 0.6, -0.7], lightColor: '#ffe9c9', tint: '#9db8ff', ship: [0.5, -0.5, 1], shipN: [0.62, -0.42, 0.5] },
+  start,
   { t: 0.55, pos: [-9, 14, 64], look: [-8, 0, 20], fov: 50, roll: -0.07, shift: [0.18, 0], shiftN: [0, -0.1], sky: 0.1, stars: 0.7, bloom: 1, light: [0.2, 0.5, -0.8], lightColor: '#ffe3c0', tint: '#8fb0ff', ship: [0.25, -0.42, 1.1], shipN: [0.1, -0.5, 0.7] },
   { t: 1, pos: [-11, 3.2, 44], look: [-14, 0.6, 22], fov: 52, roll: 0, shift: [0.3, 0.05], shiftN: [0.1, 0.35], sky: 0.4, stars: 0.9, bloom: 1.1, light: [0.6, 0.3, -0.7], lightColor: '#bfe2ff', tint: '#5fd0d6', ship: [0.66, -0.42, 0.8], shipN: [0.5, 0.55, 0.42] },
   { t: 2, pos: [-13.6, 1.0, 27], look: [-14.6, 0.6, 4], fov: 54, roll: 0.06, shift: [0.22, 0.02], shiftN: [0.1, 0.35], sky: 0.55, stars: 0.9, bloom: 1.15, light: [0.6, 0.3, -0.7], lightColor: '#bfe2ff', tint: '#ff8f5a', ship: [0.62, -0.4, 0.78], shipN: [0.5, 0.55, 0.42] },
@@ -85,8 +101,43 @@ export const keys: Key[] = [
   { t: 12.62, pos: add(C.saturn, -23, 2.1, 26), look: add(C.saturn, 2, -1, -4), fov: 46, roll: -0.02, shift: [0.3, 0.1], shiftN: [0.3, 0.4], sky: 0.6, stars: 1, bloom: 0.9, light: [-0.75, 0.42, 0.5], lightColor: '#fff0d6', tint: '#e6cfa0', ship: [0.74, -0.46, 0.55], shipN: [0.6, 0.7, 0.32] },
   { t: 13, pos: add(C.saturn, -19, -2.9, 10), look: add(C.saturn, -6, -2, -30), fov: 50, roll: 0.12, shift: [0.2, 0], sky: 0.6, stars: 1, bloom: 0.9, light: [-0.75, 0.42, 0.5], lightColor: '#fff0d6', tint: '#e6cfa0', ship: [0.6, -0.4, 0.7], shipN: [0.4, 0.5, 0.4] },
   { t: 13.5, pos: add(C.moon, -3.4, 0.7, 10), look: add(C.moon, -5, -0.4, -30), fov: 48, roll: 0.04, sky: 0.5, stars: 1, bloom: 0.95, light: [-0.85, 0.32, 0.3], lightColor: '#fff6ea', tint: '#b9c6d6', ship: [-0.15, -0.35, 0.85], shipN: [0, -0.2, 0.5] },
-  { t: 14, pos: add(C.earth, -1, 4.6, 24.5), look: add(C.earth, 0, 1.2, 0), fov: 40, roll: 0, shift: [0.42, -0.16], shiftN: [0.1, -0.62], farN: 1.12, sky: 0.36, stars: 1, bloom: 1, light: [-0.9, 0.3, -0.12], lightColor: '#fff6ea', tint: '#6fb4ff', ship: [0.02, 0.2, 0.42], shipN: [0.55, 0.45, 0.28] },
+  { t: 14, pos: add(C.earth, -1, 4.6, 24.5), look: add(C.earth, 0, 1.2, 0), fov: 40, roll: 0, shift: [0.42, -0.16], shiftN: [0.1, -0.62], farN: 1.12, sky: 0.03, stars: 1, bloom: 1, light: [-0.9, 0.3, -0.12], lightColor: '#fff6ea', tint: '#6fb4ff', ship: [0.02, 0.2, 0.42], shipN: [0.55, 0.45, 0.28] },
+  ...descentKeys(),
 ]
+
+/** La caída: de la órbita a la ciudad, a una ventana, al monitor y a un píxel. Se cierra con la misma pose del inicio. */
+function descentKeys(): Key[] {
+  const night = { light: [-0.35, 0.35, -0.9] as [number, number, number], lightColor: '#fff6ea', tint: '#7fb0ff', sky: 0.03, stars: 1, bloom: 1.05, ship: [0.05, 0.1, 0] as [number, number, number], shipN: [0.2, 0.1, 0] as [number, number, number] }
+  const city = { light: [-0.3, 0.6, -0.7] as [number, number, number], lightColor: '#9db8ff', tint: '#7f9cff', sky: 0.1, stars: 0.85, bloom: 1.25, ship: [0, 0, 0] as [number, number, number], shipN: [0, 0, 0] as [number, number, number] }
+  const room = { ...city, tint: '#ff8a4a', bloom: 1 }
+  const screen = { ...city, tint: '#9db8ff', bloom: 0.95 }
+  const [px, py] = PIXEL
+  const zoom: Key[] = []
+  const N = 14, z0 = 0.62, z1 = 4.2e-4
+  for (let i = 0; i <= N; i++) {
+    const u = i / N, z = z0 * Math.pow(z1 / z0, u)
+    const c = Math.min(1, 1 - Math.pow((z - z1) / (z0 - z1), 1.7))
+    zoom.push({ t: 18.35 + u * 0.65, pos: [px * c, py * c, z], look: [px * c, py * c, 0], fov: 38, ...screen, sky: 0, stars: 0 })
+  }
+  return [
+    { t: 14.42, pos: over(2.35, -0.6, 0.9), look: over(1), fov: 42, ...night },
+    { t: 14.75, pos: over(1.3, -0.1, 0.25), look: over(1), fov: 46, ...night },
+    { t: 15, pos: over(1.06), look: over(1), fov: 50, ...night },
+    { t: 15, cut: true, pos: [-420, 2500, 1500], look: [-190, -24, 420], fov: 54, roll: 0.1, ...city },
+    { t: 15.5, pos: [-270, 860, 930], look: [-30, -24, 60], fov: 52, roll: 0.06, ...city },
+    { t: 16, pos: [-120, 250, 520], look: [0, -14, -60], fov: 48, roll: 0.02, ...city },
+    { t: 16.5, pos: [-34, 58, 186], look: [0, 3, 0], fov: 44, ...city },
+    { t: 16.9, pos: [-6, 10, 50], look: [0, 0.5, 0], fov: 42, ...city },
+    { t: 17.3, pos: [-0.7, 1.15, 11], look: [0, 0.3, 0], fov: 44, ...room },
+    { t: 17.6, pos: [-0.12, 0.42, 3.7], look: [0, 0.12, 0], fov: 54, farN: 1, ...room },
+    { t: 18, pos: [0.02, 0.2, 1.55], look: [0, 0.05, 0], fov: 50, ...room },
+    ...zoom,
+    { t: 19, cut: true, pos: [-1, 6, 30], look: [0, 0, 0], fov: 38, roll: 0, shift: [0, 0], shiftN: [0, 0], sky: 0, stars: 0, bloom: 1, light: [0.3, 0.6, -0.7], lightColor: '#ffe9c9', tint: '#9db8ff', ship: [0.5, -0.9, 0], shipN: [0.62, -0.9, 0] },
+    { t: 19.45, pos: [-2.5, 20, 64], look: [0, -0.4, 0], fov: 41, roll: -0.08, shift: [0.16, 0.01], shiftN: [0.02, -0.2], farN: 1.35, sky: 0, stars: 0.3, bloom: 0.95, light: [0.3, 0.6, -0.7], lightColor: '#ffe9c9', tint: '#9db8ff', ship: [0.5, -0.7, 0.5], shipN: [0.62, -0.6, 0.2] },
+    { ...start, t: 19.94 },
+    { ...start, t: 20 },
+  ]
+}
 
 /* ------------------------------------------------------------------ interpolación */
 export type Pose = {

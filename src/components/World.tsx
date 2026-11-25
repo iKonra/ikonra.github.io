@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../i18n/I18nProvider'
 
 const Universe = lazy(() => import('../universe/Universe'))
@@ -17,5 +17,6 @@ export default function World() {
     const id = ric(() => setShow(true), { timeout: 1200 })
     return () => (window.cancelIdleCallback ?? clearTimeout)(id)
   }, [])
-  return show ? <Suspense fallback={null}><Universe title={t.projects.title} /></Suspense> : null
+  const screen = useMemo(() => ({ name: t.hero.name, role: t.hero.role, lead: t.hero.lead, projects: t.hero.projects, contact: t.hero.contact, nav: [t.nav.about, t.nav.projects, t.nav.stack, t.nav.journey, t.nav.contact] }), [t])
+  return show ? <Suspense fallback={null}><Universe title={t.projects.title} screen={screen} /></Suspense> : null
 }

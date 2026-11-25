@@ -3,20 +3,17 @@ import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { tex } from './assets'
 import { hash, noise3, planetVertex } from './glsl'
-import { C, J, beacon, smooth } from './journey'
+import { C, EARTH_R as R, HOME, J, beacon, globeTurn, smooth, win } from './journey'
 import { U } from './shared'
 import type { Quality } from './quality'
 
 // La Luna y la Tierra (datos de NASA): de día el relieve, los océanos y las nubes; de noche las ciudades. La baliza marca Santa Fe, Argentina.
 
-export const R = 6.4
-const LAT = THREE.MathUtils.degToRad(-31.63), LON = THREE.MathUtils.degToRad(-60.7)
-/** Santa Fe en coordenadas de la esfera. */
-const HOME = new THREE.Vector3(Math.cos(LAT) * Math.cos(LON), Math.sin(LAT), -Math.cos(LAT) * Math.sin(LON))
 
 const earth = /* glsl */ `
 varying vec3 vN; varying vec3 vW; varying vec3 vL; varying vec2 vUv;
-uniform sampler2D uDay, uNight, uBrc; uniform vec3 uLight, uLightColor; uniform float uTime; uniform vec2 uTexel; uniform mat3 uRot;
+uniform sampler2D uDay, uNight, uBrc; uniform vec3 uLight, uLightColor; uniform float uTime, uDive; uniform vec2 uTexel; uniform mat3 uRot; uniform vec3 uHome;
+${hash}
 void main(){
   vec3 n0 = normalize(vN), V = normalize(cameraPosition - vW);
   vec3 brc = texture2D(uBrc, vUv).rgb;
@@ -46,6 +43,20 @@ void main(){
   col = mix(col, uLightColor * dusk * (max(nl0 + .06, 0.) * 1.75 + .006), cl * .88);
   // ciudades
   vec3 city = texture2D(uNight, vUv).rgb; float lum = dot(city, vec3(.33));
+  if(uDive > .001){
+    // cerca, la foto no alcanza: las ciudades se completan con puntos de luz propios
+    vec3 hd = p - uHome; float dh = dot(hd, hd);
+    if(dh < .05){
+      vec2 hq = vec2(dot(hd, E), dot(hd, Nn)); float glow = 0.;
+      for(int i = 0; i < 2; i++){
+        vec2 g = hq * (900. + float(i) * 1500.), id = floor(g) + float(i) * 31., f = fract(g) - .5 - (hash22(id) - .5) * .7;
+        float dens = exp(-dh * 9000.) * .9 + exp(-dh * 600.) * .16 + lum * 1.4;
+        glow += exp(-dot(f, f) * 26.) * step(1. - dens * .55, hash21(id + 5.)) * (.5 + hash21(id + 9.));
+      }
+      city += vec3(.75, .48, .24) * glow * uDive + vec3(.5, .28, .1) * exp(-dh * 14000.) * uDive;
+      lum = dot(city, vec3(.33));
+    }
+  }
   col += city * vec3(1.35, .95, .58) * (1. - smoothstep(-.18, .1, nl0)) * (1. - cl * .72) * (.6 + lum * 3.2);
   // atmósfera sobre el disco
   float f = pow(max(1. - max(dot(n0, V), 0.), 0.), 3.2);
@@ -109,7 +120,7 @@ export default function Earth({ q }: { q: Quality }) {
     const add = (fragmentShader: string) => new THREE.ShaderMaterial({ vertexShader: uvVertex, fragmentShader, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, uniforms: { uTime: U.time, uK: k } })
     return {
       k,
-      earth: new THREE.ShaderMaterial({ vertexShader: planetVertex, fragmentShader: earth, uniforms: { uDay: { value: tex(`earth-day-${s}.webp`, { aniso: 8 }) }, uNight: { value: tex(`earth-night-${s}.webp`, { aniso: 8 }) }, uBrc: { value: tex(`earth-brc-${s}.webp`, { srgb: false, aniso: 8, repeat: true }) }, uLight: U.light, uLightColor: U.lightColor, uTime: U.time, uTexel: { value: new THREE.Vector2(1.2 / w, 2.4 / w) }, uRot: { value: new THREE.Matrix3() } } }),
+      earth: new THREE.ShaderMaterial({ vertexShader: planetVertex, fragmentShader: earth, uniforms: { uDay: { value: tex(`earth-day-${s}.webp`, { aniso: 8 }) }, uNight: { value: tex(`earth-night-${s}.webp`, { aniso: 8 }) }, uBrc: { value: tex(`earth-brc-${s}.webp`, { srgb: false, aniso: 8, repeat: true }) }, uLight: U.light, uLightColor: U.lightColor, uTime: U.time, uTexel: { value: new THREE.Vector2(1.2 / w, 2.4 / w) }, uRot: { value: new THREE.Matrix3() }, uDive: { value: 0 }, uHome: { value: HOME } } }),
       air: new THREE.ShaderMaterial({ vertexShader: planetVertex, fragmentShader: air, side: THREE.BackSide, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uLight: U.light } }),
       moon: new THREE.ShaderMaterial({ vertexShader: planetVertex, fragmentShader: moon, uniforms: { uMap: { value: tex('moon.webp', { aniso: 8 }) }, uLight: U.light, uLightColor: U.lightColor, uRot: { value: new THREE.Matrix3() } } }),
       beam: add(beam), pin: add(pin),
@@ -119,12 +130,12 @@ export default function Earth({ q }: { q: Quality }) {
   useFrame(({ camera, size }) => {
     const g = group.current
     if (!g) return
-    g.visible = J.t > 12.9
+    g.visible = J.t > 12.9 && J.t < 15
     beacon.k = 0
     if (!g.visible) return
     const t = U.time.value
     if (globe.current) {
-      globe.current.rotation.set(THREE.MathUtils.degToRad(-37), THREE.MathUtils.degToRad(-46) + Math.sin(t * 0.05) * 0.05 + (14 - J.t) * 0.35, 0.06, 'XYZ')
+      globe.current.rotation.set(globeTurn[0], globeTurn[1] + Math.sin(t * 0.05) * 0.05 * (1 - smooth(14, 14.4, J.t)) + Math.max(14 - J.t, 0) * 0.35, globeTurn[2], 'XYZ')
       globe.current.updateMatrixWorld()
       m.earth.uniforms.uRot.value.setFromMatrix4(globe.current.matrixWorld)
       const e = m.earth.uniforms.uRot.value.elements as number[]
@@ -136,7 +147,8 @@ export default function Earth({ q }: { q: Quality }) {
       m4.extractRotation(moonRef.current.matrixWorld)
       m.moon.uniforms.uRot.value.setFromMatrix4(m4)
     }
-    const on = smooth(13.72, 13.97, J.t)
+    const on = win(J.t, 13.72, 13.97, 14.3, 14.6)
+    m.earth.uniforms.uDive.value = smooth(14.15, 14.6, J.t)
     m.k.value = on
     if (home.current) home.current.visible = on > 0.01
     if (on > 0.01 && globe.current) {
