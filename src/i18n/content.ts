@@ -170,7 +170,6 @@ const es = {
     places: { galaxy: 'Vía Láctea', nebula: 'Nebulosa', jump: 'Velocidad de la luz', hole: 'Sagitario A*', wormhole: 'Agujero de gusano', belt: 'Cinturón de Kuiper', saturn: 'Saturno', moon: 'La Luna', earth: 'La Tierra' },
     beacon: 'Argentina',
   },
-  footer: { credits: 'Datos e imágenes' },
   lang: { label: 'Idioma' },
 }
 
@@ -316,7 +315,6 @@ const en: Dict = {
     places: { galaxy: 'Milky Way', nebula: 'Nebula', jump: 'Light speed', hole: 'Sagittarius A*', wormhole: 'Wormhole', belt: 'Kuiper Belt', saturn: 'Saturn', moon: 'The Moon', earth: 'Earth' },
     beacon: 'Argentina',
   },
-  footer: { credits: 'Data and imagery' },
   lang: { label: 'Language' },
 }
 

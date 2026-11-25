@@ -5,14 +5,6 @@ import { Magnetic } from '../components/effects'
 import VariableProximity from '../components/VariableProximity'
 import { linkProps, useContactItems } from '../components/ContactLinks'
 
-const credits: [string, string][] = [
-  ['NASA SVS', 'https://svs.gsfc.nasa.gov/4851'],
-  ['NASA/JPL-Caltech/ESO/R. Hurt (CC BY 4.0)', 'https://www.eso.org/public/images/eso1339g/'],
-  ['Solar System Scope (CC BY 4.0)', 'https://www.solarsystemscope.com/textures/'],
-  ['Yale Bright Star Catalog', 'http://tdc-www.harvard.edu/catalogs/bsc5.html'],
-  ['d3-celestial', 'https://github.com/ofrohn/d3-celestial'],
-]
-
 export default function Contact() {
   const { t, lang } = useI18n()
   const items = useContactItems(20)
@@ -41,12 +33,6 @@ export default function Contact() {
           )}
         </div>
       </div>
-      <footer className="credits">
-        <span>{t.footer.credits}</span>
-        <ul>
-          {credits.map(([name, href]) => <li key={name}><a href={href} target="_blank" rel="noopener noreferrer">{name}</a></li>)}
-        </ul>
-      </footer>
     </section>
   )
 }

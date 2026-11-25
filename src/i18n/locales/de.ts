@@ -141,6 +141,5 @@ export const de: Dict = {
     places: { galaxy: 'Milchstraße', nebula: 'Nebel', jump: 'Lichtgeschwindigkeit', hole: 'Sagittarius A*', wormhole: 'Wurmloch', belt: 'Kuipergürtel', saturn: 'Saturn', moon: 'Der Mond', earth: 'Die Erde' },
     beacon: 'Argentinien',
   },
-  footer: { credits: 'Daten und Bilder' },
   lang: { label: 'Sprache' },
 }
