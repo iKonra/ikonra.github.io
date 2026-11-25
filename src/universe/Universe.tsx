@@ -31,13 +31,17 @@ import { J } from './state'
 
 // Un único canvas fijo detrás de toda la página: el recorrido completo es una sola escena y un solo vuelo de cámara.
 
-/** Mide los fps y baja la calidad si el equipo no los sostiene. */
-function Watchdog() {
-  const s = useRef({ time: 0, frames: 0, warm: 4, slow: 0 })
+const SCALES = [1, 0.86, 0.74, 0.64]
+
+/** Mide los fps. Si el equipo no los sostiene baja la resolución de a poco, y la recupera cuando vuelve a sobrar;
+ *  solo si ni así alcanza, pasa al nivel liviano. Un bajón pasajero no deja la página fea para siempre. */
+function Watchdog({ step, setStep }: { step: number; setStep: (n: number) => void }) {
+  const s = useRef({ time: 0, frames: 0, warm: 5, slow: 0, good: 0, ups: 0 })
   useFrame((_, delta) => {
     const m = s.current
     if (!J.warm) return
-    if (delta > 0.25) { m.warm = Math.max(m.warm, 0.8); return }
+    // un tirón suelto (otra pestaña, una textura que sube) no cuenta
+    if (delta > 0.12) { m.warm = Math.max(m.warm, 1); m.time = 0; m.frames = 0; return }
     if (m.warm > 0) { m.warm -= delta; return }
     m.time += delta
     m.frames++
@@ -45,8 +49,13 @@ function Watchdog() {
     const fps = m.frames / m.time
     m.time = 0
     m.frames = 0
-    m.slow = fps < 38 ? m.slow + 1 : 0
-    if (m.slow >= 3) { m.slow = 0; m.warm = 3; degrade() }
+    m.slow = fps < 40 ? m.slow + 1 : 0
+    m.good = fps > 56 ? m.good + 1 : 0
+    const last = step >= SCALES.length - 1
+    if (m.slow >= (last ? 6 : 2) && (!last || fps < 30)) {
+      m.slow = 0; m.good = 0; m.warm = 1.5
+      if (last) degrade(); else setStep(step + 1)
+    } else if (step > 0 && m.good >= 8 && m.ups < 3) { m.good = 0; m.warm = 1.5; m.ups++; setStep(step - 1) }
   })
   return null
 }
@@ -78,7 +87,8 @@ export default function Universe({ title, screen }: { title: string; screen: Scr
   const mobile = useMemo(() => matchMedia('(max-width: 860px), (pointer: coarse)').matches, [])
   const still = useMemo(prefersReducedMotion, [])
   const q = useMemo(() => quality(tier, mobile), [tier, mobile])
-  const dpr = useMemo(() => (w: number, h: number) => Math.min(q.maxDpr, devicePixelRatio || 1, Math.sqrt(q.maxPixels / Math.max(1, w * h))), [q])
+  const [step, setStep] = useState(0)
+  const dpr = useMemo(() => (w: number, h: number) => Math.min(q.maxDpr, devicePixelRatio || 1, Math.sqrt(q.maxPixels / Math.max(1, w * h))) * SCALES[step], [q, step])
   const [hidden, setHidden] = useState(false)
 
   useEffect(() => {
@@ -120,7 +130,7 @@ export default function Universe({ title, screen }: { title: string; screen: Scr
         <Tunnel />
         <Ship />
         <Pipeline q={q} />
-        {tier === 2 || still ? <RedrawOnScroll /> : <Watchdog />}
+        {tier === 2 || still ? <RedrawOnScroll /> : <Watchdog step={step} setStep={setStep} />}
       </Canvas>
     </div>
   )

@@ -43,7 +43,7 @@ export default function Descent() {
             <p>{text}</p>
             {i === 2 && (
               <div className="descent-actions">
-                {items.map(c => <a key={c.id} tabIndex={-1} className={`btn ${c.id === 'email' ? 'btn-accent' : 'btn-outline'}`} {...linkProps(c)} data-cursor={c.label}>{c.icon}{c.label}</a>)}
+                {items.map(c => <a key={c.id} tabIndex={-1} className={`btn ${c.id === 'email' ? 'btn-accent' : 'btn-outline'}`} {...linkProps(c)}>{c.icon}{c.label}</a>)}
               </div>
             )}
           </div>

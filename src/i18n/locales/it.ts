@@ -90,11 +90,12 @@ export const it: Dict = {
       reply: 'Ciao. Questi sono i comandi disponibili su questo server.',
       typing: 'Discord Bot sta scrivendo…',
     },
-    game: { hint: 'Clic, tocco o barra spaziatrice per saltare', over: 'Fine della partita. Clic per riprovare', label: 'Minigioco di TwoBones', cursor: 'Salta' },
+    game: { hint: 'Clic, tocco o barra spaziatrice per saltare', over: 'Fine della partita. Clic per riprovare', label: 'Minigioco di TwoBones' },
   },
   stack: {
     title: 'Stack tecnico',
     lead: 'Tecnologie e strumenti con cui lavoro.',
+    github: { label: 'Minigioco con i miei contributi su GitHub', start: 'Clic per giocare', hint: 'Ogni quadrato è un giorno reale del mio GitHub. Muovere per mirare; i bug tolgono vite.', score: 'Contributi', bugs: 'Bug corretti', over: 'Fine della partita. Clic per riprovare', win: 'Anno completo. Clic per giocare ancora', total: 'contributi nell’ultimo anno', streak: 'giorni di fila, serie migliore', record: 'in un solo giorno', repos: 'repository pubblici' },
     groups: [
       { name: 'Linguaggi', icon: 'code', items: ['JavaScript', 'Python', 'SQL', 'C#', 'HTML', 'CSS'] },
       { name: 'Backend e test', icon: 'server', items: ['Node.js', 'Express', 'API REST', 'Supertest'] },

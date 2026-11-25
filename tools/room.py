@@ -6,7 +6,7 @@ OUT, MODE = ARGS[0], ARGS[1]  # preview | bake
 random.seed(7)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
-G = {'shell': [], 'desk': []}
+G = {'shell': [], 'desk': [], 'art': []}
 mats = {}
 
 def lin(h):
@@ -114,7 +114,9 @@ gourd = tex_mat('gourd', noisy('#3b1d0e', '#6e3a1c', 14), .5); yerba = tex_mat('
 fabric = tex_mat('fabric', noisy('#222a3a', '#2c3649', 60), 1); blanket = tex_mat('blanket', noisy('#8a3a1e', '#a34a28', 40), 1); pillow = mat('pillow', '#cfcac0', .9); rug = tex_mat('rug', noisy('#54382f', '#6a483a', 70), 1)
 paper = mat('shade', '#fff0d8', .8, 0, '#ffb469', 24)
 ledm = mat('led', '#ff7a3c', .5, 0, '#ff5a1f', 12); bulb = mat('bulb', '#ffffff', .5, 0, '#ffc98a', 22); pc_led = mat('pcled', '#ffffff', .5, 0, '#4aa3ff', 5)
-poster = tex_mat('poster', img(os.path.join(OUT, 'galaxy.png')), .7)
+poster = tex_mat('poster', img(os.path.join(OUT, 'galaxy.png')), .7); champion = tex_mat('champion', img(os.path.join(OUT, 'messi-wb.png')), .6)
+for m_ in (poster, champion): m_.node_tree.nodes['Principled BSDF'].inputs['Specular IOR Level'].default_value = 0
+glass = mat('glass', '#d3d8df', .06); glass.node_tree.nodes['Principled BSDF'].inputs['Coat Weight'].default_value = 1
 
 FL, CE, BK, WN, XL, XR = -1.12, 1.48, .46, -3.3, -2.0, 2.15
 # ---------------------------------------------------------------- cáscara
@@ -170,16 +172,15 @@ box((-.95, -.35, FL + .2), (.32, .2, .4), fabric, 'shell', .06, (.1, 0, .3)); bo
 cyl((-1.62, .12, FL + .02), .13, .025, black, 'shell'); cyl((-1.62, .12, FL + .6), .011, 1.16, black, 'shell'); ball((-1.62, .12, FL + 1.36), .21, paper, 'shell', (1, 1, 1.12), 32)
 # cuadros
 def frame(x, z, w, h, m):
-    box((x, BK - .012, z), (w + .04, .022, h + .04), black, 'shell', .003); plane((x, BK - .0245, z), w, h, m, 'shell', (math.pi / 2, 0, 0))
+    box((x, BK - .012, z), (w + .04, .022, h + .04), black, 'shell', .003); plane((x, BK - .0245, z), w, h, m, 'art', (math.pi / 2, 0, 0))
 navy = mat('pst', '#10162a', .8)
-frame(-1.0, .62, .5, .5, poster)
-frame(1.28, .7, .34, .46, navy)
-for i, (r, c) in enumerate([(.125, accent), (.095, navy), (.07, mustard)]): cyl((1.28, BK - .0255 - i * .0012, .74), r, .001, c, 'shell', v=48, rot=(math.pi / 2, 0, 0))
-frame(1.72, .62, .26, .26, mat('pst2', '#1a1030', .8))
+frame(-1.08, .62, .5, .5, poster)
+frame(1.2, .58, .64, .36, champion)
+frame(1.78, .62, .26, .26, mat('pst2', '#1a1030', .8))
 SK = ['..XXXXX..', '.XXXXXXX.', 'XXXXXXXXX', 'XXOOXOOXX', 'XXOOXOOXX', 'XXXXXXXXX', '.XXX.XXX.', '..XXXXX..', '..X.X.X..']
 for j, row in enumerate(SK):
     for i, ch in enumerate(row):
-        if ch != '.': plane((1.72 + (i - 4) * .019, BK - .0262, .62 - (j - 4) * .019), .019, .019, white if ch == 'X' else accent, 'shell', (math.pi / 2, 0, 0))
+        if ch != '.': plane((1.78 + (i - 4) * .019, BK - .0262, .62 - (j - 4) * .019), .019, .019, white if ch == 'X' else accent, 'art', (math.pi / 2, 0, 0))
 # estante sobre el escritorio
 box((.0, BK - .11, .62), (1.5, .22, .026), shelfw, 'desk', .004)
 for x in (-.6, .6): box((x, BK - .1, .585), (.02, .18, .05), black, 'desk', .003)
@@ -198,9 +199,25 @@ def saturn(c, r):
     o = mesh(vs, fs, mat('ring', '#b8a37c', .6), 'desk'); o.location = c; o.rotation_euler = (.35, .3, 0); s = o.modifiers.new('s', 'SOLIDIFY'); s.thickness = .003
     cyl((c[0], c[1], c[2] - r - .03), .004, .07, steel); cyl((c[0], c[1], c[2] - r - .062), .04, .012, black)
 saturn((.12, BK - .11, .755), .048)
-for j, row in enumerate(SK):
-    for i, ch in enumerate(row):
-        if ch != '.': box((.47 + (i - 4) * .017, BK - .11 + (.012 if ch == 'O' else 0), .633 + (8 - j + .5) * .017), (.0172, .09 - (.024 if ch == 'O' else 0), .0172), white if ch == 'X' else black, 'desk', 0)
+# el muñeco pixelado verde: cada cara es una grilla de píxeles
+greens = [mat('cg%d' % i, c, .8) for i, c in enumerate(('#2f7d32', '#43a047', '#5cbf57', '#7fd47a', '#a5dc9f'))]; ink = mat('ink', '#070a07', .9)
+FACE = ['........', '........', '.XX..XX.', '.XX..XX.', '...XX...', '..XXXX..', '..XXXX..', '..X..X..']
+def voxel(c, n, px, face=None):
+    (w, d, h), a = n, -.42
+    def put(x, y, z): return (c[0] + x * math.cos(a) - y * math.sin(a), c[1] + x * math.sin(a) + y * math.cos(a), c[2] + z)
+    out = {}
+    def side(nu, nv, f, mask=None):
+        for v in range(nv):
+            for u in range(nu):
+                q = ink if mask and mask[nv - 1 - v][u] == 'X' else random.choices(greens, (1, 4, 5, 3, 1))[0]
+                vs, fs = out.setdefault(q.name, ([], [])); k = len(vs)
+                vs += [put(*[t * px for t in f(uu, vv)]) for uu, vv in ((u, v), (u + 1, v), (u + 1, v + 1), (u, v + 1))]; fs.append((k, k + 1, k + 2, k + 3))
+    side(w, h, lambda u, v: (u - w / 2, -d / 2, v), face); side(w, h, lambda u, v: (w / 2 - u, d / 2, v))
+    side(d, h, lambda u, v: (w / 2, u - d / 2, v)); side(d, h, lambda u, v: (-w / 2, d / 2 - u, v)); side(w, d, lambda u, v: (u - w / 2, v - d / 2, h))
+    for k, (vs, fs) in out.items(): mesh(vs, fs, mats[k], 'art', False)
+P_ = .0088
+for y in (-4, 4): voxel((.44 + y * P_ * math.sin(.42), BK - .12 + y * P_ * math.cos(.42), .633), (8, 4, 6), P_)
+voxel((.44, BK - .12, .633 + 6 * P_), (8, 4, 12), P_); voxel((.44, BK - .12, .633 + 18 * P_), (8, 8, 8), P_, FACE)
 cyl((.66, BK - .11, .69), .06, .11, terra, r2=.075); cyl((.66, BK - .11, .74), .068, .01, soil)
 def leaf(base, yaw, pitch, L, W, droop=.6, grp='desk'):
     vs, fs, n = [], [], 7
@@ -221,8 +238,8 @@ for i in range(15): leaf((px, py, FL + .33 + i * .028), i * 2.4, random.uniform(
 
 # ---------------------------------------------------------------- escritorio
 DT = -.335
-box((0, .08, DT - .018), (1.75, .74, .036), deskw, 'desk', .006)
-for x in (-.8, .8):
+box((.1125, .08, DT - .018), (1.975, .74, .036), deskw, 'desk', .006)
+for x in (-.8, 1.02):
     box((x, .08, (DT + FL) / 2 - .02), (.05, .6, .03), black, 'desk')
     for y in (-.22, .38): box((x, y, (DT + FL) / 2 - .018), (.05, .05, DT - FL - .036), black, 'desk')
 SW, SH = .598, .336
@@ -230,8 +247,14 @@ box((0, .016, 0), (SW + .016, .022, SH + .016), black, 'desk', .003)
 box((0, .035, 0), (SW * .7, .03, SH * .7), dark, 'desk', .01)
 cyl((0, .07, -.15), .018, .33, dark); box((0, .07, DT + .008), (.24, .19, .012), dark, 'desk', .004); box((0, .052, -.02), (.06, .04, .06), dark, 'desk')
 box((0, .054, .12), (SW * .66, .004, .008), ledm, 'desk', 0); box((0, .054, -.12), (SW * .66, .004, .008), ledm, 'desk', 0)
-box((.03, -.14, DT + .0025), (.86, .3, .004), tex_mat('mat', noisy('#14161d', '#191c25', 120), 1), 'desk', .002)
-kx, ky, kz = -.06, -.15, DT + .016
+# segundo monitor, girado hacia quien se sienta
+A2 = -math.radians(24); MX, MY = .598, -.106
+def m2(x, y, z): return (MX + x * math.cos(A2) - y * math.sin(A2), MY + x * math.sin(A2) + y * math.cos(A2), z)
+box(m2(0, .016, 0), (SW + .016, .022, SH + .016), black, 'desk', .003, (0, 0, A2)); box(m2(0, .035, 0), (SW * .7, .03, SH * .7), dark, 'desk', .01, (0, 0, A2))
+cyl(m2(0, .07, -.15), .018, .33, dark); box(m2(0, .07, DT + .008), (.24, .19, .012), dark, 'desk', .004, (0, 0, A2)); box(m2(0, .052, -.02), (.06, .04, .06), dark, 'desk', .004, (0, 0, A2))
+# mousepad de vidrio blanco, solo para el mouse
+box((.325, -.155, DT + .003), (.3, .25, .006), glass, 'desk', .002)
+kx, ky, kz = -.06, -.15, DT + .0115
 box((kx, ky, kz), (.37, .135, .022), dark, 'desk', .005)
 keyc = [mat('key', '#2c303a', .6), mat('key2', '#3a404d', .6)]
 rows = [[1] * 15, [1.5] + [1] * 12 + [1.5], [1.75] + [1] * 11 + [2.25], [2.25] + [1] * 10 + [2.75], [1.25, 1.25, 1.25, 6.25, 1.25, 1.25, 1.25, 1.25]]
@@ -240,17 +263,17 @@ for r, row in enumerate(rows):
     for i, w in enumerate(row):
         m = accent if (r == 0 and i == 0) or (r == 2 and i == 12) else keyc[1] if i in (0, len(row) - 1) else keyc[0]
         box((x + w * u / 2, ky + .05 - r * .0245, kz + .0135), (w * u - .003, .0208, .011), m, 'desk', .002); x += w * u
-ball((.28, -.15, DT + .016), .03, black, 'desk', (.95, 1.75, .55)); cyl((.28, -.175, DT + .03), .004, .008, accent, rot=(0, math.pi / 2, 0), v=12)
-for s in (-1, 1):
-    box((s * .47, .18, DT + .115), (.13, .15, .23), dark, 'desk', .008, (0, 0, -s * .25))
-    for z, r in ((.075, .046), (.17, .024)): cyl((s * .47 - s * .019, .18 - .0755, DT + z), r, .006, grey, rot=(math.pi / 2, 0, -s * .25))
+ball((.31, -.15, DT + .02), .03, black, 'desk', (.95, 1.75, .55)); cyl((.31, -.175, DT + .034), .004, .008, accent, rot=(0, math.pi / 2, 0), v=12)
+for X, Y, a_ in ((-.47, .18, .25), (1.0, .12, -.5)):
+    box((X, Y, DT + .115), (.13, .15, .23), dark, 'desk', .008, (0, 0, a_))
+    for z, q in ((.075, .046), (.17, .024)): cyl((X + math.sin(a_) * .0755, Y - math.cos(a_) * .0755, DT + z), q, .006, grey, rot=(math.pi / 2, 0, a_))
 lx, ly = -.72, .26
 cyl((lx, ly, DT + .01), .075, .02, black); tube([(lx, ly, DT + .02), (lx - .02, ly, DT + .18), (lx - .06, ly, DT + .3)], .008, black); tube([(lx - .06, ly, DT + .3), (lx + .06, ly - .08, DT + .42), (lx + .16, ly - .14, DT + .46)], .008, black)
 cyl((lx + .19, ly - .16, DT + .42), .085, .1, accent, r2=.03, rot=(-.25, -.45, 0)); ball((lx + .175, ly - .155, DT + .375), .026, bulb)
-mx_, my_ = .6, -.08
+mx_, my_ = .61, -.225
 ball((mx_, my_, DT + .045), .043, gourd, 'desk', (1, 1, 1.05)); cyl((mx_, my_, DT + .088), .034, .022, steel, r2=.037); cyl((mx_, my_, DT + .095), .033, .01, yerba)
 tube([(mx_ + .005, my_, DT + .06), (mx_ + .03, my_ - .004, DT + .16), (mx_ + .052, my_ - .01, DT + .18)], .0035, steel)
-cyl((.73, .04, DT + .115), .045, .23, mat('thermo', '#2d5f57', .35, .5), v=32, bevel=.01); cyl((.73, .04, DT + .25), .03, .05, steel, v=24, bevel=.005); tube([(.772, .04, DT + .19), (.81, .04, DT + .18), (.81, .04, DT + .08), (.772, .04, DT + .07)], .007, black)
+cyl((.985, -.12, DT + .115), .045, .23, mat('thermo', '#2d5f57', .35, .5), v=32, bevel=.01); cyl((.985, -.12, DT + .25), .03, .05, steel, v=24, bevel=.005); tube([(1.027, -.12, DT + .19), (1.065, -.12, DT + .18), (1.065, -.12, DT + .08), (1.027, -.12, DT + .07)], .007, black)
 box((-.5, -.13, DT + .008), (.16, .22, .014), wine, 'desk', .002, (0, 0, .22)); box((-.5, -.13, DT + .0165), (.15, .21, .003), white, 'desk', 0, (0, 0, .22)); cyl((-.46, -.12, DT + .022), .004, .14, black, v=10, rot=(math.pi / 2, 0, .75))
 for i in range(8): box((-.505 + .01 * math.sin(i), -.075 - i * .016, DT + .0183), (.1 - .03 * (i % 3), .002, .0004), blue, 'desk', 0, (0, 0, .22))
 hx, hy = -.36, .24
@@ -265,16 +288,16 @@ new = [o for o in bpy.data.objects if o not in before]
 root = bpy.data.objects.new('shiproot', None); sc.collection.objects.link(root)
 for o in new:
     if o.parent is None: o.parent = root
-root.scale = (.032,) * 3; root.rotation_euler = (0, math.radians(-12), math.radians(152)); root.location = (.44, .0, DT + .115)
+root.scale = (.032,) * 3; root.rotation_euler = (0, math.radians(-12), math.radians(152)); root.location = (-.1, BK - .11, .633 + .1)
 for o in new: o.animation_data_clear()
 bpy.context.view_layer.update()
 for o in new:
     if o.type == 'MESH':
         mw = o.matrix_world.copy(); o.parent = None; o.modifiers.clear(); o.matrix_world = mw; G['desk'].append(o)
-cyl((.44, .0, DT + .05), .003, .1, steel, v=10); cyl((.44, .0, DT + .006), .045, .012, black)
-box((.6, .12, FL + .24), (.2, .42, .44), black, 'desk', .008); box((.498, .12, FL + .24), (.004, .36, .38), dark, 'desk', .001); box((.5, -.085, FL + .24), (.05, .006, .34), pc_led, 'desk', 0)
+cyl((-.1, BK - .11, .633 + .045), .003, .09, steel, v=10); cyl((-.1, BK - .11, .633 + .006), .04, .012, black)
+box((.84, .12, FL + .24), (.2, .42, .44), black, 'desk', .008); box((.738, .12, FL + .24), (.004, .36, .38), dark, 'desk', .001); box((.74, -.085, FL + .24), (.05, .006, .34), pc_led, 'desk', 0)
 # silla, girada y corrida a la derecha
-chx, chy, a = .62, -.95, .75
+chx, chy, a = 1.02, -1.0, .95
 def cbox(x, y, z, s, m, b=.02, r=0):
     X = chx + x * math.cos(a) - y * math.sin(a); Y = chy + x * math.sin(a) + y * math.cos(a); box((X, Y, FL + z), s, m, 'desk', b, (r, 0, a))
 cbox(0, 0, .47, (.5, .5, .08), fabric, .035); cbox(0, -.25, .86, (.46, .07, .62), fabric, .03, .13); cbox(0, -.285, .86, (.1, .03, .7), black, .01, .13)
@@ -290,8 +313,10 @@ def light(kind, loc, energy, color, rot=(0, 0, 0), **kw):
     for k, v in kw.items(): setattr(l, k, v)
     o = bpy.data.objects.new('l', l); o.location = loc; o.rotation_euler = rot; sc.collection.objects.link(o); return o
 light('AREA', (0, -.012, 0), 13, '#9fc4ff', (-math.pi / 2, 0, 0), shape='RECTANGLE', size=SW, size_y=SH)
+light('AREA', m2(0, -.012, 0), 4.5, '#a9b8ff', (-math.pi / 2, 0, A2), shape='RECTANGLE', size=SW, size_y=SH)
+light('SPOT', (1.2, -.15, 1.3), 22, '#e6ecff', (-.72, 0, 0), spot_size=.75, spot_blend=.8, shadow_soft_size=.08)
 light('AREA', (0, .06, .1), 2.4, '#ff6a2c', (math.pi / 2, 0, 0), shape='RECTANGLE', size=SW * .8, size_y=.22)
-light('POINT', (1.2, -.2, FL + 2.2), 5, '#ffa860', shadow_soft_size=.25)
+light('POINT', (1.2, -.2, FL + 2.2), 13, '#ffa860', shadow_soft_size=.25)
 light('SPOT', (lx + .175, ly - .155, DT + .34), 9, '#ffc58a', (-.25, -.35, 0), spot_size=1.9, spot_blend=.6, shadow_soft_size=.03)
 light('SUN', (0, 0, 0), .22, '#7fa6ff', (math.radians(62), 0, math.radians(-14)), angle=.02)
 w = bpy.data.worlds.new('w'); sc.world = w; w.use_nodes = True; w.node_tree.nodes['Background'].inputs[0].default_value = (.02, .035, .08, 1); w.node_tree.nodes['Background'].inputs[1].default_value = .35
@@ -308,7 +333,7 @@ for t in ('OPTIX', 'CUDA', 'HIP'):
 
 if MODE == 'preview':
     sc.cycles.samples = 64; sc.cycles.use_denoising = True
-    plane((0, 0, 0), SW, SH, mat('scr', '#000000', .5, 0, '#5a7fd0', 1.2), 'desk', (math.pi / 2, 0, 0))
+    plane((0, 0, 0), SW, SH, mat('scr', '#000000', .5, 0, '#5a7fd0', 1.2), 'desk', (math.pi / 2, 0, 0)); plane(m2(0, 0, 0), SW, SH, mats['scr'], 'desk', (math.pi / 2, 0, A2))
     cam = bpy.data.cameras.new('c'); co = bpy.data.objects.new('c', cam); sc.collection.objects.link(co); sc.camera = co
     sc.render.resolution_x, sc.render.resolution_y = 1280, 720; sc.view_settings.view_transform = 'AgX'; sc.view_settings.exposure = 1.0
     for n, (p, t, f) in enumerate([((0, -5.6, .55), (0, 0, .05), 45), ((-.1, -2.9, .42), (0, 0, 0), 55), ((.0, -1.25, .16), (0, .1, -.04), 50), ((0, .3, 1.0), (0, -3, -.3), 75)]):
@@ -338,16 +363,17 @@ for g, objs in G.items():
     bpy.ops.object.mode_set(mode='OBJECT')
     print(g, 'tris', sum(len(p.vertices) - 2 for p in o.data.polygons))
 sc.cycles.samples = SPP
-sc.render.bake.use_pass_glossy = False; sc.render.bake.use_pass_transmission = False; sc.render.bake.margin = 6
+sc.render.bake.use_pass_transmission = False; sc.render.bake.margin = 6
+# los reflejos se hornean vistos desde el recorrido de la cámara
+cam = bpy.data.cameras.new('c'); co = bpy.data.objects.new('c', cam); sc.collection.objects.link(co); sc.camera = co
+co.location = (-.05, -1.75, .24); co.rotation_euler = (Vector((0, 0, 0)) - co.location).to_track_quat('-Z', 'Y').to_euler(); sc.render.bake.view_from = 'ACTIVE_CAMERA'
+SIZES = {'shell': SIZE, 'desk': SIZE * 3 // 2, 'art': SIZE // 2}
 for g, o in joined.items():
-    im = bpy.data.images.new('bake_' + g, SIZE, SIZE, float_buffer=True)
+    im = bpy.data.images.new('bake_' + g, SIZES[g], SIZES[g], float_buffer=True)
     for s in o.material_slots:
         nt = s.material.node_tree
         if 'BAKE' in nt.nodes: continue
         n = nt.nodes.new('ShaderNodeTexImage'); n.image = im; n.name = 'BAKE'; nt.nodes.active = n
-        b = nt.nodes.get('Principled BSDF')
-        # los metales no tienen difusa: se hornean casi como pintura clara
-        if b and not b.inputs['Metallic'].is_linked: b.inputs['Metallic'].default_value *= .25
     bpy.ops.object.select_all(action='DESELECT'); o.select_set(True); bpy.context.view_layer.objects.active = o
     bpy.ops.object.bake(type='COMBINED')
     im.filepath_raw = os.path.join(OUT, f'bake_{g}.exr'); im.file_format = 'OPEN_EXR'; im.save()

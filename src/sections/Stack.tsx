@@ -3,10 +3,10 @@ import { useI18n } from '../i18n/I18nProvider'
 import { Heading, Parallax, Rise } from '../components/motion'
 import { Tilt } from '../components/effects'
 import { PixelIcon } from '../components/pixelArt'
-import PixelScene from '../components/PixelScene'
+import CommitGame from '../components/CommitGame'
 import { stackColors } from '../lib/palette'
 
-/** Stack técnico en pixel art: una escena con la mascota de TwoBones y una tarjeta por grupo de tecnologías. */
+/** Stack técnico en pixel art: un juego con el calendario de GitHub y una tarjeta por grupo de tecnologías. */
 export default function Stack() {
   const { t } = useI18n()
   return (
@@ -15,7 +15,7 @@ export default function Stack() {
         <Heading text={t.stack.title} className="section-title" />
         <Rise as="p" className="section-lead">{t.stack.lead}</Rise>
       </Parallax>
-      <Rise delay={0.05}><PixelScene /></Rise>
+      <Rise delay={0.05}><CommitGame /></Rise>
       <ul className="tech-grid">
         {t.stack.groups.map((g, i) => {
           const color = stackColors[i % stackColors.length]

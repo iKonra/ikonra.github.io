@@ -111,7 +111,6 @@ export function GameFragment({ play = true }: { play?: boolean }) {
         aria-label={t.projects.game.label}
         onPointerDown={() => jumpRef.current()}
         onKeyDown={onKey}
-        data-cursor={t.projects.game.cursor}
       />
       <span className="game-brand">TwoBones</span>
       {state !== 'run' && <span className="game-hint">{state === 'over' ? t.projects.game.over : t.projects.game.hint}</span>}

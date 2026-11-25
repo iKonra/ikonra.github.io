@@ -117,11 +117,12 @@ const es = {
       reply: 'Hola. Estos son los comandos disponibles en este servidor.',
       typing: 'Discord Bot está escribiendo…',
     },
-    game: { hint: 'Clic, toque o barra espaciadora para saltar', over: 'Fin del juego. Clic para reintentar', label: 'Mini juego de TwoBones', cursor: 'Saltar' },
+    game: { hint: 'Clic, toque o barra espaciadora para saltar', over: 'Fin del juego. Clic para reintentar', label: 'Mini juego de TwoBones' },
   },
   stack: {
     title: 'Stack técnico',
     lead: 'Tecnologías y herramientas con las que trabajo.',
+    github: { label: 'Mini juego con mis contribuciones de GitHub', start: 'Clic para jugar', hint: 'Cada cuadro es un día real de mi GitHub. Mover para apuntar; los bugs restan vidas.', score: 'Contribuciones', bugs: 'Bugs corregidos', over: 'Fin del juego. Clic para reintentar', win: 'Año completo. Clic para jugar otra vez', total: 'contribuciones en el último año', streak: 'días seguidos, mejor racha', record: 'en un solo día', repos: 'repositorios públicos' },
     groups: [
       { name: 'Lenguajes', icon: 'code', items: ['JavaScript', 'Python', 'SQL', 'C#', 'HTML', 'CSS'] },
       { name: 'Backend y testing', icon: 'server', items: ['Node.js', 'Express', 'APIs REST', 'Supertest'] },
@@ -268,11 +269,12 @@ const en: Dict = {
       reply: 'Hi! These are the commands available on this server.',
       typing: 'Discord Bot is typing…',
     },
-    game: { hint: 'Click, tap or press space to jump', over: 'Game over. Click to retry', label: 'TwoBones mini game', cursor: 'Jump' },
+    game: { hint: 'Click, tap or press space to jump', over: 'Game over. Click to retry', label: 'TwoBones mini game' },
   },
   stack: {
     title: 'Tech stack',
     lead: 'Technologies and tools I work with.',
+    github: { label: 'Mini game built from my GitHub contributions', start: 'Click to play', hint: 'Every square is a real day on my GitHub. Move to aim; bugs cost lives.', score: 'Contributions', bugs: 'Bugs fixed', over: 'Game over. Click to retry', win: 'Year complete. Click to play again', total: 'contributions in the last year', streak: 'days in a row, best streak', record: 'in a single day', repos: 'public repositories' },
     groups: [
       { name: 'Languages', icon: 'code', items: ['JavaScript', 'Python', 'SQL', 'C#', 'HTML', 'CSS'] },
       { name: 'Backend & testing', icon: 'server', items: ['Node.js', 'Express', 'REST APIs', 'Supertest'] },

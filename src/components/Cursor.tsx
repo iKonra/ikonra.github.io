@@ -6,7 +6,7 @@ import { J } from '../universe/state'
 const enabled = () => matchMedia('(hover: hover) and (pointer: fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /** Cursor: una estrella de cuatro puntas con el color de la zona. Se estira con la velocidad, se vuelve un anillo sobre lo
- *  clickeable y muestra una etiqueta si el elemento tiene data-cursor (data-cursor-soft la deja al pie, sin tapar lo de abajo). */
+ *  clickeable y muestra una etiqueta al pie, sin tapar nada, si el elemento tiene data-cursor. */
 export default function Cursor() {
   const [on] = useState(enabled)
   return on ? <Star /> : null
@@ -19,7 +19,6 @@ function Star() {
   const sy = useSpring(y, { stiffness: 620, damping: 42, mass: 0.35 })
   const [hover, setHover] = useState(false)
   const [label, setLabel] = useState('')
-  const [soft, setSoft] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const star = useRef<HTMLSpanElement>(null)
   const spin = useRef(0)
@@ -30,7 +29,6 @@ function Star() {
       const el = (e.target as Element).closest?.('a, button, [data-cursor]')
       setHover(!!el)
       setLabel(el?.getAttribute('data-cursor') ?? '')
-      setSoft(!!el?.hasAttribute('data-cursor-soft'))
     }
     addEventListener('pointermove', move, { passive: true })
     return () => removeEventListener('pointermove', move)
@@ -46,12 +44,12 @@ function Star() {
   })
 
   return (
-    <motion.div ref={root} className={`cursor ${hover ? 'is-hover' : ''} ${label ? (soft ? 'is-soft' : 'has-label') : ''}`} style={{ x: sx, y: sy }} aria-hidden>
+    <motion.div ref={root} className={`cursor ${hover ? 'is-hover' : ''} ${label ? 'is-soft' : ''}`} style={{ x: sx, y: sy }} aria-hidden>
       <span ref={star} className="cursor-star"><svg viewBox="-12 -12 24 24"><path d="M0-11C.8-2.4 2.4-.8 11 0 2.4.8.8 2.4 0 11-.8 2.4-2.4.8-11 0-2.4-.8-.8-2.4 0-11Z" /></svg></span>
       <motion.span
         className="cursor-ring"
         initial={false}
-        animate={{ scale: label ? (soft ? 1.35 : 2.3) : hover ? 1.15 : 0.2, opacity: hover || label ? 1 : 0 }}
+        animate={{ scale: label ? 1.35 : hover ? 1.15 : 0.2, opacity: hover || label ? 1 : 0 }}
         transition={{ type: 'spring', stiffness: 380, damping: 28 }}
       />
       <AnimatePresence>

@@ -48,7 +48,7 @@ export default function Hero() {
         </div>
       </motion.div>
       <motion.div className="hero-stage" style={{ opacity }}>
-        <div className="hero-touch" onClick={morph} data-cursor={t.hero.morph} data-cursor-soft aria-hidden />
+        <div className="hero-touch" onClick={morph} data-cursor={t.hero.morph} aria-hidden />
       </motion.div>
       <motion.a href="#about" className="scroll-hint" style={{ opacity }}><i aria-hidden /> {t.hero.scroll}</motion.a>
       <motion.button className="galaxy-btn" style={{ opacity }} onClick={morph} aria-label={`${t.hero.morph}: ${t.hero.galaxies[galaxy]}`}>

@@ -40,7 +40,7 @@ function Card({ p, i, total, active }: { p: Project; i: number; total: number; a
       <Fragment id={p.id} play={active} />
       {p.stack && <p className="project-stack">{p.stack}</p>}
       {p.url ? (
-        <a className="link-arrow" href={p.url} target="_blank" rel="noopener noreferrer" data-cursor={t.projects.visit.replace(':', '')}>
+        <a className="link-arrow" href={p.url} target="_blank" rel="noopener noreferrer">
           {t.projects.visit} {p.title} <Arrow />
         </a>
       ) : p.id === 'twobones' ? <span className="project-soon">{t.projects.soon}</span> : null}

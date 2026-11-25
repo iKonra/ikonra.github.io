@@ -18,7 +18,7 @@ export default function Contact() {
             {items.map(i => {
               const primary = i.id === 'email'
               const button = (
-                <a className={`btn btn-lg ${primary ? 'btn-accent' : 'btn-outline'}`} {...linkProps(i)} data-cursor={i.label}>
+                <a className={`btn btn-lg ${primary ? 'btn-accent' : 'btn-outline'}`} {...linkProps(i)}>
                   {i.icon}
                   {i.label}
                 </a>

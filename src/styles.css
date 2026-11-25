@@ -532,11 +532,28 @@ html.reduce-motion .ph { height: 100vh; }
 
 /* ---------- Stack técnico (pixel art) ---------- */
 .tech .section-lead { margin-top: 20px; color: #c9ccd6; max-width: 44ch; text-shadow: 0 1px 14px var(--ground); }
-.pixel-wrap { margin-top: clamp(28px, 5vw, 64px); display: flex; justify-content: center; }
-.pixel-scene {
-  display: block; height: auto; max-width: 100%; image-rendering: pixelated; background: #0a0913; cursor: pointer; touch-action: manipulation;
-  box-shadow: 0 0 0 2px rgba(243, 239, 231, 0.24), 0 0 0 6px rgba(5, 6, 10, 0.8), 0 0 0 8px rgba(243, 239, 231, 0.1), 0 30px 80px rgba(0, 0, 0, 0.5);
+.gh { margin-top: clamp(28px, 5vw, 64px); display: flex; justify-content: center; }
+.gh-in { width: var(--w, 100%); max-width: 100%; display: grid; gap: 16px; }
+.gh-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 24px; font: 700 0.95rem var(--mono); letter-spacing: -0.01em; }
+.gh-head a { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; text-underline-offset: 5px; }
+.gh-head a:hover { color: #43e07c; text-decoration: underline; }
+.gh-head p { display: flex; flex-wrap: wrap; gap: 6px 22px; color: #a9adba; font-weight: 600; font-variant-numeric: tabular-nums; }
+.gh-head b { color: #f4f1ec; }
+.gh-stage { position: relative; box-shadow: 0 0 0 2px rgba(243, 239, 231, 0.24), 0 0 0 6px rgba(5, 6, 10, 0.8), 0 0 0 8px rgba(243, 239, 231, 0.1), 0 30px 80px rgba(0, 0, 0, 0.5); }
+.gh-canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; background: #080711; cursor: crosshair; touch-action: pan-y; }
+.gh-canvas:focus-visible { outline: 2px solid #43e07c; outline-offset: 8px; }
+.gh-hint {
+  position: absolute; left: 50%; top: 62%; transform: translate(-50%, -50%); pointer-events: none; padding: 8px 16px; white-space: nowrap;
+  font: 700 clamp(0.78rem, 1.4vw, 1rem) var(--mono); color: #08140c; background: #43e07c;
 }
+.gh-hint.is-end { color: #160a04; background: var(--accent); }
+.gh-note { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 24px; min-height: 1.5em; color: #c9ccd6; font-size: 0.95rem; text-shadow: 0 1px 14px var(--ground); }
+.gh-tip { color: #43e07c; font-weight: 600; font-variant-numeric: tabular-nums; }
+.gh-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px 24px; margin-top: 8px; }
+.gh-stats dd { font: 700 clamp(1.5rem, 2.6vw, 2.2rem)/1 var(--mono); letter-spacing: -0.03em; color: #43e07c; font-variant-numeric: tabular-nums; }
+.gh-stats dt { margin-top: 8px; color: #c9ccd6; font-size: 0.92rem; line-height: 1.35; text-shadow: 0 1px 14px var(--ground); }
+.gh-stats div { display: flex; flex-direction: column; }
+@media (max-width: 720px) { .gh-stats { grid-template-columns: 1fr 1fr; } }
 .tech-grid { margin-top: clamp(40px, 5vw, 72px); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 @media (max-width: 1100px) { .tech-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .tech-grid > li, .tech-float { display: grid; }
@@ -628,11 +645,9 @@ html.reduce-motion .ph { height: 100vh; }
 .cursor-star { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; }
 .cursor-star svg { display: block; width: 100%; height: 100%; fill: #fff; filter: drop-shadow(0 0 5px rgba(var(--tint), 0.95)); transition: transform 260ms var(--ease-out); }
 .cursor.is-hover .cursor-star svg { transform: scale(0.62); }
-.cursor.has-label .cursor-star svg { transform: scale(0); }
 .cursor.is-soft .cursor-star svg { transform: none; }
 .cursor.is-soft .cursor-label { top: 46px; width: max-content; color: #fff; font-weight: 600; text-shadow: 0 1px 10px #000, 0 0 3px #000; }
 .cursor-ring { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(var(--tint), 0.95); }
-.cursor.has-label .cursor-ring { background: var(--accent); box-shadow: none; }
 /* Centrado con x/y de motion (un transform en CSS lo pisa la animación de escala). Ancho fijo y hasta dos renglones
    para que cualquier etiqueta entre dentro del círculo de ~90 px. */
 .cursor-label {
