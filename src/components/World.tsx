@@ -1,22 +1,21 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
+import { useI18n } from '../i18n/I18nProvider'
 
-const WorldScene = lazy(() => import('../three/WorldScene'))
+const Universe = lazy(() => import('../universe/Universe'))
 
 function supportsWebGL() {
-  try {
-    const c = document.createElement('canvas')
-    return !!(c.getContext('webgl2') || c.getContext('webgl'))
-  } catch { return false }
+  try { return !!document.createElement('canvas').getContext('webgl2') } catch { return false }
 }
 
-/** Monta el mundo 3D cuando el navegador queda libre, así el texto aparece primero. */
+/** Monta el universo 3D cuando el navegador queda libre, así el texto aparece primero. */
 export default function World() {
+  const { t } = useI18n()
   const [show, setShow] = useState(false)
   useEffect(() => {
-    if (!supportsWebGL()) return
+    if (!supportsWebGL()) { document.documentElement.classList.add('no-3d'); return }
     const ric = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200))
     const id = ric(() => setShow(true), { timeout: 1200 })
     return () => (window.cancelIdleCallback ?? clearTimeout)(id)
   }, [])
-  return show ? <Suspense fallback={null}><WorldScene /></Suspense> : null
+  return show ? <Suspense fallback={null}><Universe title={t.projects.title} /></Suspense> : null
 }

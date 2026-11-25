@@ -1,27 +1,26 @@
 import { useEffect } from 'react'
 import Lenis from 'lenis'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { isLite, prefersReducedMotion } from '../lib/perf'
+import { setLenis } from '../lib/scroll'
 
-gsap.registerPlugin(ScrollTrigger)
-
-/** Scroll suave global (Lenis) sincronizado con GSAP ScrollTrigger. Se monta una sola vez en App. En equipos lentos o con "reducir movimiento" se usa el scroll nativo. */
+/** Scroll suave global. Se monta una sola vez en App. En equipos lentos o con "reducir movimiento" se usa el scroll nativo. */
 export function useLenis() {
   useEffect(() => {
     if (prefersReducedMotion() || isLite()) return
-    const lenis = new Lenis({ anchors: { offset: -72 } })
-    lenis.on('scroll', ScrollTrigger.update)
-    const tick = (time: number) => lenis.raf(time * 1000)
-    gsap.ticker.add(tick)
-    gsap.ticker.lagSmoothing(0)
+    const lenis = new Lenis()
+    let raf = requestAnimationFrame(function tick(time) {
+      lenis.raf(time)
+      raf = requestAnimationFrame(tick)
+    })
+    setLenis(lenis)
     document.documentElement.classList.add('lenis')
 
     let stopped = false
     const stop = () => {
       if (stopped) return
       stopped = true
-      gsap.ticker.remove(tick)
+      cancelAnimationFrame(raf)
+      setLenis(null)
       lenis.destroy()
       document.documentElement.classList.remove('lenis')
     }

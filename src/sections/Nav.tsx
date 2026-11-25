@@ -3,11 +3,14 @@ import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/I18nProvider'
 import { ease } from '../components/motion'
 import { linkProps, useContactItems } from '../components/ContactLinks'
+import LangPicker from '../components/LangPicker'
+import Readout from '../components/Readout'
+import Tools from '../components/Tools'
 
 const ids = ['about', 'projects', 'stack', 'journey', 'contact'] as const
 
 export default function Nav() {
-  const { t, toggle } = useI18n()
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const contact = useContactItems()
@@ -29,8 +32,11 @@ export default function Nav() {
 
   return (
     <>
-      <header className={`bar ${scrolled ? 'is-scrolled' : ''}`}>
-        <a href="#top" className="wordmark" onClick={() => setOpen(false)}>Conrado De Napoli</a>
+      <header className={`bar ${scrolled ? 'is-scrolled' : ''} ${open ? 'is-open' : ''}`} data-ui>
+        <div className="bar-brand">
+          <a href="#top" className="wordmark" onClick={() => setOpen(false)}>Conrado De Napoli</a>
+          <Readout short />
+        </div>
         <nav className="bar-links" aria-label="Main">
           {ids.map(id => <a key={id} href={`#${id}`}>{t.nav[id]}</a>)}
         </nav>
@@ -43,40 +49,42 @@ export default function Nav() {
               </a>
             ))}
           </nav>
-          <button className="lang" onClick={toggle} aria-label={t.lang.label}>{t.lang.other}</button>
+          <LangPicker />
           <button className="menu-btn" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-controls="mobile-menu">
             {open ? t.nav.close : t.nav.menu}
           </button>
         </div>
         <AnimatePresence>
           {open && (
-            <motion.nav
+            <motion.div
               id="mobile-menu"
               className="sheet"
-              aria-label="Mobile"
               initial={{ clipPath: 'inset(0 0 100% 0)' }}
               animate={{ clipPath: 'inset(0 0 0% 0)' }}
               exit={{ clipPath: 'inset(0 0 100% 0)', transition: { duration: 0.25, ease: ease.out } }}
               transition={{ duration: 0.45, ease: ease.out }}
             >
-              {ids.map((id, i) => (
-                <motion.a
-                  key={id}
-                  href={`#${id}`}
-                  onClick={() => setOpen(false)}
-                  initial={{ opacity: 0, y: 24 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.08 + i * 0.05, duration: 0.5, ease: ease.out }}
-                >
-                  {t.nav[id]}
-                </motion.a>
-              ))}
-            </motion.nav>
+              <nav aria-label="Mobile">
+                {ids.map((id, i) => (
+                  <motion.a
+                    key={id}
+                    href={`#${id}`}
+                    onClick={() => setOpen(false)}
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.08 + i * 0.05, duration: 0.5, ease: ease.out }}
+                  >
+                    {t.nav[id]}
+                  </motion.a>
+                ))}
+              </nav>
+              <Tools labels onUse={() => setOpen(false)} />
+            </motion.div>
           )}
         </AnimatePresence>
       </header>
 
-      <nav className="dock" aria-label={t.contact.quick}>
+      <nav className="dock" aria-label={t.contact.quick} data-ui>
         {contact.map(i => (
           <a key={i.id} className="dock-item" {...linkProps(i)}>
             {i.icon}

@@ -1,9 +1,10 @@
-// Genera, a partir de content.ts, todo lo que tiene que estar en el HTML inicial: texto visible, meta tags,
+// Genera, a partir de los diccionarios, todo lo que tiene que estar en el HTML inicial: texto visible, meta tags,
 // Open Graph, Twitter Card y datos estructurados. Lo usa el plugin de vite.config.ts (corre en Node, sin DOM).
-import { dictionaries, links, type Lang } from '../i18n/content'
+import { dictionaries, links } from '../i18n/content'
+import { langCodes, langs, type Lang } from '../i18n/langs'
 
 export const SITE = 'https://ikonra.github.io/'
-export const OG_IMAGE = `${SITE}og.png`
+export const OG_IMAGE = `${SITE}og.jpg`
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -21,10 +22,9 @@ export function renderHead() {
   }
   return `<title>${esc(es.title)}</title>
     <meta name="description" content="${esc(es.description)}" />
-    <meta name="theme-color" content="#100f0d" />
+    <meta name="theme-color" content="#05060a" />
     <link rel="canonical" href="${SITE}" />
-    <link rel="alternate" hreflang="es" href="${SITE}?lang=es" />
-    <link rel="alternate" hreflang="en" href="${SITE}?lang=en" />
+    ${langCodes.map(l => `<link rel="alternate" hreflang="${l}" href="${SITE}?lang=${l}" />`).join('\n    ')}
     <link rel="alternate" hreflang="x-default" href="${SITE}" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="${esc(dictionaries.es.hero.name)}" />
@@ -32,12 +32,12 @@ export function renderHead() {
     <meta property="og:description" content="${esc(es.description)}" />
     <meta property="og:url" content="${SITE}" />
     <meta property="og:image" content="${OG_IMAGE}" />
-    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="${esc(es.title)}" />
-    <meta property="og:locale" content="es_AR" />
-    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale" content="${langs.es.og}" />
+    ${langCodes.filter(l => l !== 'es').map(l => `<meta property="og:locale:alternate" content="${langs[l].og}" />`).join('\n    ')}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${esc(es.title)}" />
     <meta name="twitter:description" content="${esc(es.description)}" />
@@ -51,8 +51,9 @@ export function renderHead() {
 export const bootScript = `(function(){try{
 var d=document.documentElement,p=new URLSearchParams(location.search),q=p.get('lang'),s=null;
 try{s=localStorage.getItem('lang')}catch(e){}
-var n=(navigator.language||'es').toLowerCase();
-d.lang=q==='en'||q==='es'?q:s==='en'||s==='es'?s:n.indexOf('es')===0?'es':'en';
+var k=${JSON.stringify(langCodes)},ok=function(v){return k.indexOf(v)>=0},g=null;
+if(ok(q))g=q;else if(ok(s))g=s;else{var n=navigator.languages||[navigator.language];for(var i=0;i<n.length;i++){var c=String(n[i]||'').slice(0,2).toLowerCase();if(ok(c)){g=c;break}}}
+d.lang=g||(navigator.language?'en':'es');
 var r=matchMedia('(prefers-reduced-motion: reduce)').matches,l=p.get('lite');
 if(r)d.classList.add('reduce-motion');
 if(l==='1'||(l!=='0'&&(r||(navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<=4||(navigator.connection&&navigator.connection.saveData))))d.classList.add('lite');
@@ -70,7 +71,7 @@ function contactItems(lang: Lang) {
 
 function block(lang: Lang) {
   const t = dictionaries[lang]
-  const sfx = lang === 'es' ? '' : '-en' // los ids no se pueden repetir entre los dos idiomas
+  const sfx = lang === 'es' ? '' : `-${lang}` // los ids no se pueden repetir entre idiomas
   const sections = ['about', 'projects', 'stack', 'journey', 'contact'] as const
 
   const projects = t.projects.items
@@ -141,5 +142,5 @@ function block(lang: Lang) {
 }
 
 export function renderBody() {
-  return `${block('es')}\n  ${block('en')}`
+  return langCodes.map(block).join('\n  ')
 }

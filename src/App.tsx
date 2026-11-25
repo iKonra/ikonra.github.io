@@ -9,8 +9,8 @@ import Journey from './sections/Journey'
 import Contact from './sections/Contact'
 import { useLenis } from '@/hooks/useLenis'
 import Cursor from './components/Cursor'
+import Hud from './components/Hud'
 import World from './components/World'
-import Nebula from './components/Nebula'
 import Stardust from './components/Stardust'
 
 export default function App() {
@@ -18,9 +18,7 @@ export default function App() {
   return (
     <I18nProvider>
       <MotionConfig reducedMotion="user">
-        <Nebula />
         <World />
-        <div className="grain" aria-hidden />
         <Stardust />
         <Cursor />
         <Nav />
@@ -32,6 +30,7 @@ export default function App() {
           <Journey />
           <Contact />
         </main>
+        <Hud />
       </MotionConfig>
     </I18nProvider>
   )

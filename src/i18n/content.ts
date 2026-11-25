@@ -1,18 +1,14 @@
-// Todo el texto del sitio vive acá. Editá libremente: cada clave tiene versión ES y EN.
-// Lo que dejes en '' (o sin definir) no se muestra.
+// Todo el texto del sitio: español e inglés acá, los demás idiomas en locales/. TypeScript avisa si a un idioma le falta una clave.
+// Lo que quede en '' (o sin definir) no se muestra.
+import { de } from './locales/de'
+import { fr } from './locales/fr'
+import { it } from './locales/it'
+import { pt } from './locales/pt'
+import { links } from './links'
+import type { Lang } from './langs'
 
-export type Lang = 'es' | 'en'
+export { links, type Lang }
 
-export const links = {
-  github: 'https://github.com/iKonra',
-  linkedin: 'https://www.linkedin.com/in/conrado-de-napoli-8627442a0/',
-  email: 'denapoliconra@gmail.com',
-  // El PDF va en public/cv.pdf
-  cv: '/cv.pdf',
-  tricapi: 'https://tricapi.com',
-  discordBots: 'https://top.gg/bot/771034535219429389',
-  twobones: '',
-}
 
 export type IconName = 'code' | 'server' | 'database' | 'plug' | 'cloud' | 'window' | 'game' | 'tools'
 export type StackGroup = { name: string; icon: IconName; items: string[] }
@@ -44,7 +40,9 @@ const es = {
     lead: 'Co-Founder de Tricapi, un SaaS con 70 clientes pagos. Estudiante de Ingeniería en Informática (UNL).',
     projects: 'Ver proyectos',
     contact: 'Contacto',
-    morph: 'Cambiar forma',
+    morph: 'Cambiar galaxia',
+    scroll: 'Desplazar para iniciar el viaje',
+    galaxies: ['Vía Láctea', 'Galaxia Remolino · M51', 'Objeto de Hoag', 'Galaxia del Sombrero · M104', 'Galaxia elíptica · M87'],
   },
   about: {
     title: 'Sobre mí',
@@ -59,7 +57,6 @@ const es = {
   projects: {
     title: 'Proyectos',
     lead: 'Trabajos y proyectos seleccionados.',
-    parallaxAlt: 'Saturno y sus anillos sobre un cielo estrellado',
     visit: 'Visitar',
     soon: 'Sitio web próximamente',
     items: [
@@ -156,7 +153,25 @@ const es = {
     cv: 'Descargar CV',
     quick: 'Contacto rápido',
   },
-  lang: { other: 'EN', label: 'Switch to English' },
+  hud: {
+    distance: 'Distancia a la Tierra',
+    ly: 'años luz',
+    /** Va entre «millones» y «km»: «4500 millones de km». */
+    of: 'de',
+    route: 'Ruta del viaje',
+    loading: 'Cargando el universo',
+    pilot: 'Piloto automático',
+    pilotStop: 'Detener piloto automático',
+    sound: 'Activar sonido',
+    soundOff: 'Silenciar',
+    explore: 'Modo explorar',
+    exit: 'Salir',
+    hint: 'Arrastrar para mirar · Desplazar para viajar · Esc para salir',
+    places: { galaxy: 'Vía Láctea', nebula: 'Nebulosa', jump: 'Velocidad de la luz', hole: 'Sagitario A*', wormhole: 'Agujero de gusano', belt: 'Cinturón de Kuiper', saturn: 'Saturno', moon: 'La Luna', earth: 'La Tierra' },
+    beacon: 'Argentina',
+  },
+  footer: { credits: 'Datos e imágenes' },
+  lang: { label: 'Idioma' },
 }
 
 export type Dict = typeof es
@@ -173,7 +188,9 @@ const en: Dict = {
     lead: 'Co-Founder of Tricapi, a SaaS with 70 paying customers. Computer Engineering student (UNL).',
     projects: 'View projects',
     contact: 'Contact',
-    morph: 'Morph',
+    morph: 'Change galaxy',
+    scroll: 'Scroll to begin the journey',
+    galaxies: ['Milky Way', 'Whirlpool Galaxy · M51', "Hoag's Object", 'Sombrero Galaxy · M104', 'Elliptical galaxy · M87'],
   },
   about: {
     title: 'About me',
@@ -188,7 +205,6 @@ const en: Dict = {
   projects: {
     title: 'Projects',
     lead: 'Selected work and projects.',
-    parallaxAlt: 'Saturn and its rings against a starry sky',
     visit: 'Visit',
     soon: 'Website coming soon',
     items: [
@@ -284,7 +300,24 @@ const en: Dict = {
     cv: 'Download CV',
     quick: 'Quick contact',
   },
-  lang: { other: 'ES', label: 'Cambiar a español' },
+  hud: {
+    distance: 'Distance to Earth',
+    ly: 'light-years',
+    of: '',
+    route: 'Journey route',
+    loading: 'Loading the universe',
+    pilot: 'Autopilot',
+    pilotStop: 'Stop autopilot',
+    sound: 'Turn sound on',
+    soundOff: 'Mute',
+    explore: 'Explore mode',
+    exit: 'Exit',
+    hint: 'Drag to look around · Scroll to travel · Esc to exit',
+    places: { galaxy: 'Milky Way', nebula: 'Nebula', jump: 'Light speed', hole: 'Sagittarius A*', wormhole: 'Wormhole', belt: 'Kuiper Belt', saturn: 'Saturn', moon: 'The Moon', earth: 'Earth' },
+    beacon: 'Argentina',
+  },
+  footer: { credits: 'Data and imagery' },
+  lang: { label: 'Language' },
 }
 
-export const dictionaries: Record<Lang, Dict> = { es, en }
+export const dictionaries: Record<Lang, Dict> = { es, en, pt, fr, it, de }

@@ -1,37 +1,33 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from 'motion/react'
 import { useI18n } from '../i18n/I18nProvider'
-import { ParallaxComponent } from '@/components/ui/parallax-scrolling'
 import { CodeFragment, DiscordFragment, GameFragment } from '../components/Fragments'
 import { GameCard, Metrics } from '../components/ProjectExtras'
 import { Arrow } from './Hero'
-import { projectsState } from '../three/projectsState'
+import { isLite } from '../lib/perf'
+import { hold, smooth, worldColors } from '../universe/state'
 import type { Project } from '../i18n/content'
 
-const ProjectsScene = lazy(() => import('../three/ProjectsScene'))
-const NAV_HEIGHT = 64
-
-// Cada proyecto tiene su campo de color; el texto se adapta
-const fields: Record<Project['id'], { bg: string; tone: 'dark' | 'light' }> = {
-  tricapi: { bg: '#f3efe7', tone: 'dark' },
-  inti: { bg: '#0f7a5c', tone: 'light' },
-  twobones: { bg: '#ff5a1f', tone: 'dark' },
-  web: { bg: '#2340ff', tone: 'light' },
-  bots: { bg: '#c8f03c', tone: 'dark' },
-}
+const withFragment: Project['id'][] = ['twobones', 'web', 'bots']
 
 function Fragment({ id, play }: { id: Project['id']; play: boolean }) {
-  if (id === 'twobones') return <GameFragment play={play} />
-  if (id === 'web') return <CodeFragment play={play} />
-  return <DiscordFragment play={play} />
+  if (!withFragment.includes(id)) return null
+  return (
+    <div className="panel-fragment">
+      {id === 'twobones' ? <GameFragment play={play} /> : id === 'web' ? <CodeFragment play={play} /> : <DiscordFragment play={play} />}
+    </div>
+  )
 }
 
-/** Texto de un proyecto: el mismo en la versión con cortinas y en la estática (sin animaciones). */
-function PanelBody({ p, active }: { p: Project; active: boolean }) {
+/** Ficha de un proyecto: la misma en la versión con vuelo y en la estática. */
+function Card({ p, i, total, active }: { p: Project; i: number; total: number; active: boolean }) {
   const { t } = useI18n()
   return (
-    <div className="panel-text">
-      <p className="project-kind">{p.kind}{p.period && <span className="project-period"> · {p.period}</span>}</p>
+    <div className="hud-card" style={{ '--accent': worldColors[i] } as CSSProperties}>
+      <p className="panel-kicker">
+        <span className="panel-num" aria-hidden>{String(i + 1).padStart(2, '0')}<i>/{String(total).padStart(2, '0')}</i></span>
+        <span className="project-kind">{p.kind}{p.period && <span className="project-period"> · {p.period}</span>}</span>
+      </p>
       <h3 className="panel-title">{p.title}</h3>
       <p className="panel-desc">{p.description}</p>
       {p.features && (
@@ -41,9 +37,10 @@ function PanelBody({ p, active }: { p: Project; active: boolean }) {
       )}
       {p.metrics && <Metrics items={p.metrics} play={active} />}
       {p.game && <GameCard data={p.game} />}
+      <Fragment id={p.id} play={active} />
       {p.stack && <p className="project-stack">{p.stack}</p>}
       {p.url ? (
-        <a className="link-arrow" href={p.url} target="_blank" rel="noopener noreferrer" tabIndex={active ? 0 : -1} data-cursor={t.projects.visit}>
+        <a className="link-arrow" href={p.url} target="_blank" rel="noopener noreferrer" data-cursor={t.projects.visit.replace(':', '')}>
           {t.projects.visit} {p.title} <Arrow />
         </a>
       ) : p.id === 'twobones' ? <span className="project-soon">{t.projects.soon}</span> : null}
@@ -51,149 +48,90 @@ function PanelBody({ p, active }: { p: Project; active: boolean }) {
   )
 }
 
-const withFragment: Project['id'][] = ['twobones', 'web', 'bots']
+type PanelProps = { p: Project; i: number; total: number; index: MotionValue<number>; enter: MotionValue<number>; active: boolean; soft: boolean }
 
-function PanelFragment({ id, play }: { id: Project['id']; play: boolean }) {
-  if (!withFragment.includes(id)) return null
-  return <div className="panel-fragment"><Fragment id={id} play={play} /></div>
-}
-
-// Cada proyecto se queda quieto un rato antes de que suba el siguiente
-function hold(raw: number, last: number) {
-  const k = Math.min(Math.floor(raw), last)
-  const f = raw - k
-  const t = Math.min(Math.max((f - 0.2) / 0.6, 0), 1)
-  return Math.min(k + t * t * (3 - 2 * t), last)
-}
-
-const smooth = (a: number, b: number, v: number) => {
-  const t = Math.min(Math.max((v - a) / (b - a), 0), 1)
-  return t * t * (3 - 2 * t)
-}
-
-/** Cortina: el panel sube desde abajo recortado con clip-path y el anterior se hunde un poco. */
-function useCurtain(index: MotionValue<number>, i: number) {
-  const reveal = useTransform(index, v => (i === 0 ? 1 : Math.min(Math.max(v - (i - 1), 0), 1)))
-  const leave = useTransform(index, v => Math.min(Math.max(v - i, 0), 1))
-  const clipPath = useTransform(reveal, r => `inset(${(1 - r) * 100}% 0 0 0)`)
-  // El texto además se recorta por abajo cuando sube la cortina siguiente, así no queda encima
-  const textClip = useTransform([reveal, leave], ([r, l]: number[]) => `inset(${(1 - r) * 100}% 0 ${l * 100}% 0)`)
-  // El texto saliente se apaga (primer 40 % de la transición) antes de que aparezca el entrante (último 45 %):
-  // los dos títulos gigantes nunca se ven a la vez, solo la cortina de color.
-  const opacity = useTransform([reveal, leave], ([r, l]: number[]) => Math.min(smooth(0.55, 0.9, r), 1 - smooth(0, 0.4, l)))
-  const y = useTransform([reveal, leave], ([r, l]: number[]) => `${(1 - r) * 18 - l * 8}vh`)
-  const scale = useTransform(leave, l => 1 - l * 0.06)
-  return { clipPath, textClip, opacity, y, scale }
-}
-
-function Panel({ p, i, index, active }: { p: Project; i: number; index: MotionValue<number>; active: boolean }) {
-  const { clipPath, textClip, opacity, y, scale } = useCurtain(index, i)
-  const field = fields[p.id]
+/** Cada ficha llega desde el fondo y, al irse, pasa de largo hacia la cámara. La primera espera a que se llegue al primer mundo. */
+function Panel({ p, i, total, index, enter, active, soft }: PanelProps) {
+  const gate = (e: number) => (i === 0 ? smooth(0.82, 1, e) : 1)
+  const opacity = useTransform([index, enter], ([x, e]: number[]) => (1 - smooth(0.1, 0.4, Math.abs(x - i))) * gate(e))
+  const scale = useTransform(index, x => { const d = Math.min(Math.max(x - i, -0.6), 0.6); return d < 0 ? 1 + d * 0.22 : 1 + d * 0.42 })
+  const y = useTransform(index, x => `${Math.min(Math.max(i - x, -0.6), 0.6) * 12}vh`)
+  const filter = useTransform(index, x => { const b = soft ? smooth(0.08, 0.42, Math.abs(x - i)) * 10 : 0; return b > 0.15 ? `blur(${b.toFixed(1)}px)` : 'none' })
+  const visibility = useTransform(opacity, o => (o < 0.004 ? 'hidden' : 'visible'))
   return (
-    <>
-      <motion.div className="curtain-bg" style={{ clipPath, background: field.bg, zIndex: i }} aria-hidden />
-      <motion.div className={`curtain-text tone-${field.tone}`} style={{ clipPath: textClip, opacity, zIndex: 10 + i }} aria-hidden={!active}>
-        <motion.div className="curtain-inner" style={{ y, scale }}>
-          <PanelBody p={p} active={active} />
-          <PanelFragment id={p.id} play={active} />
-        </motion.div>
+    <motion.article className="panel" style={{ opacity, visibility }} inert={!active}>
+      <motion.div className="panel-inner" style={{ scale, y, filter }}>
+        <Card p={p} i={i} total={total} active={active} />
       </motion.div>
-    </>
+    </motion.article>
   )
 }
 
-function Header() {
+/** Encabezado: el título se dibuja en WebGL, curvado por el agujero negro. Acá queda para lectores de pantalla y para cuando no hay 3D. */
+function Head() {
   const { t } = useI18n()
+  const ref = useRef<HTMLDivElement>(null)
+  const reduce = useReducedMotion()
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
+  const opacity = useTransform(scrollYProgress, v => (reduce ? 1 : 1 - smooth(0.3, 0.6, v)))
+  const y = useTransform(scrollYProgress, [0, 0.6], ['0vh', reduce ? '0vh' : '8vh'])
   return (
-    <ParallaxComponent
-      title={t.projects.title}
-      subtitle={t.projects.lead}
-      image="/images/saturn-2000.webp"
-      imageSrcSet="/images/saturn-1000.webp 1000w, /images/saturn-2000.webp 2000w"
-      imageAlt={t.projects.parallaxAlt}
-    />
+    <div id="projects-head" ref={ref} className="ph">
+      <motion.div className="ph-sticky" style={{ opacity }}>
+        <h2 className="ph-title">{t.projects.title}</h2>
+        <motion.p className="ph-lead" style={{ y }}>{t.projects.lead}</motion.p>
+      </motion.div>
+    </div>
   )
 }
 
-function ProjectsPinned() {
+function ProjectsFlight() {
   const { t } = useI18n()
   const items = t.projects.items
   const last = items.length - 1
   const track = useRef<HTMLDivElement>(null)
   const { scrollYProgress } = useScroll({ target: track, offset: ['start start', 'end end'] })
+  const { scrollYProgress: enter } = useScroll({ target: track, offset: ['start end', 'start start'] })
+  const { scrollYProgress: leave } = useScroll({ target: track, offset: ['end end', 'end start'] })
   const index = useTransform(scrollYProgress, p => hold(p * last, last))
+  const gone = useTransform(leave, v => 1 - smooth(0.05, 0.6, v))
   const [active, setActive] = useState(0)
-  // El canvas 3D (contexto WebGL, reflejos, shaders) es lo más caro de crear: se monta cuando el navegador queda libre
-  // un rato después de la carga, no a mitad de un scroll. Si el usuario llega antes a la sección, se monta en ese momento.
-  const [ready, setReady] = useState(false)
-
-  useEffect(() => {
-    const el = track.current
-    if (!el) return
-    const mount = () => setReady(true)
-    const ric = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 2000))
-    const cancel = window.cancelIdleCallback ?? clearTimeout
-    const id = ric(mount, { timeout: 3500 })
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) mount() }, { rootMargin: '100% 0px' })
-    io.observe(el)
-    return () => { cancel(id); io.disconnect() }
-  }, [])
-
-  useMotionValueEvent(index, 'change', i => {
-    projectsState.progress = i
-    setActive(Math.round(i))
-  })
-
-  // En celular el texto va abajo y el modelo 3D arriba: medimos cuánto lugar queda libre sobre el texto de cada panel
-  useEffect(() => {
-    const el = track.current
-    if (!el) return
-    const measure = () => {
-      projectsState.rooms = [...el.querySelectorAll<HTMLElement>('.panel-text')].map(t => Math.max(0, t.offsetTop - NAV_HEIGHT - 12))
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    document.fonts?.ready.then(measure)
-    return () => ro.disconnect()
-  }, [items])
+  const [soft] = useState(() => !isLite())
+  useMotionValueEvent(index, 'change', i => setActive(Math.round(i)))
 
   return (
     <section id="projects" className="projects">
-      <Header />
-      <div ref={track} className="stack" style={{ height: `${items.length * 100}vh` }}>
-        <div className="stack-sticky">
-          {items.map((p, i) => <Panel key={p.id} p={p} i={i} index={index} active={active === i} />)}
-          <div className="stack-canvas">{ready && <Suspense fallback={null}><ProjectsScene /></Suspense>}</div>
-        </div>
+      <div className="gap gap-jump" aria-hidden />
+      <Head />
+      <div className="gap gap-wormhole" aria-hidden />
+      <div id="worlds" ref={track} className="worlds" style={{ height: `${items.length * 110}vh` }}>
+        <motion.div className="worlds-sticky" style={{ opacity: gone }}>
+          {items.map((p, i) => <Panel key={p.id} p={p} i={i} total={items.length} index={index} enter={enter} active={active === i} soft={soft} />)}
+        </motion.div>
       </div>
+      <div className="gap gap-short" aria-hidden />
     </section>
   )
 }
 
-/** Con "reducir movimiento": una lista de bloques de color, sin cortinas, sin pantalla fija y sin 3D. */
+/** Con "reducir movimiento": una lista de fichas, sin pantalla fija ni transiciones. */
 function ProjectsStatic() {
   const { t } = useI18n()
+  const items = t.projects.items
   return (
     <section id="projects" className="projects">
-      <Header />
-      <div className="stack-static">
-        {t.projects.items.map(p => {
-          const field = fields[p.id]
-          return (
-            <article key={p.id} className={`project-static tone-${field.tone}`} style={{ background: field.bg }}>
-              <div className="curtain-inner">
-                <PanelBody p={p} active />
-                <PanelFragment id={p.id} play />
-              </div>
-            </article>
-          )
-        })}
+      <Head />
+      <div id="worlds" className="worlds-static">
+        {items.map((p, i) => (
+          <article key={p.id} className="panel-static">
+            <Card p={p} i={i} total={items.length} active />
+          </article>
+        ))}
       </div>
     </section>
   )
 }
 
 export default function Projects() {
-  return useReducedMotion() ? <ProjectsStatic /> : <ProjectsPinned />
+  return useReducedMotion() ? <ProjectsStatic /> : <ProjectsFlight />
 }

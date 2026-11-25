@@ -12,8 +12,8 @@ function seo(): Plugin {
       if (!existsSync(fileURLToPath(new URL('./public/cv.pdf', import.meta.url)))) {
         this.warn('Falta public/cv.pdf: el botón "Descargar CV" va a dar 404 hasta que lo agregues.')
       }
-      if (!existsSync(fileURLToPath(new URL('./public/og.png', import.meta.url)))) {
-        this.warn('Falta public/og.png: el link compartido no va a mostrar imagen.')
+      if (!existsSync(fileURLToPath(new URL('./public/og.jpg', import.meta.url)))) {
+        this.warn('Falta public/og.jpg: el link compartido no va a mostrar imagen.')
       }
     },
     transformIndexHtml: {
@@ -40,7 +40,7 @@ export default defineConfig({
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   build: {
     target: 'es2020',
-    // three.js vive en un chunk diferido (solo lo pide el hero 3D)
-    chunkSizeWarningLimit: 1000,
+    // three.js y toda la escena del universo viven en un chunk diferido que se pide después del primer render
+    chunkSizeWarningLimit: 1200,
   },
 })

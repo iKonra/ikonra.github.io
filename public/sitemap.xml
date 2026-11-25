@@ -4,6 +4,10 @@
     <loc>https://ikonra.github.io/</loc>
     <xhtml:link rel="alternate" hreflang="es" href="https://ikonra.github.io/?lang=es" />
     <xhtml:link rel="alternate" hreflang="en" href="https://ikonra.github.io/?lang=en" />
+    <xhtml:link rel="alternate" hreflang="pt" href="https://ikonra.github.io/?lang=pt" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://ikonra.github.io/?lang=fr" />
+    <xhtml:link rel="alternate" hreflang="it" href="https://ikonra.github.io/?lang=it" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://ikonra.github.io/?lang=de" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://ikonra.github.io/" />
   </url>
 </urlset>

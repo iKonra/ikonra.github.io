@@ -1,19 +1,24 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { dictionaries, type Dict, type Lang } from './content'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { dictionaries, type Dict } from './content'
+import { isLang, type Lang } from './langs'
 
-type Ctx = { lang: Lang; t: Dict; toggle: () => void }
+type Ctx = { lang: Lang; t: Dict; setLang: (l: Lang) => void }
 const I18nContext = createContext<Ctx | null>(null)
 
-// Orden: ?lang= de la URL (los links hreflang) > preferencia guardada > idioma del navegador.
-// Si cambiás esta lógica, cambiá también el script del <head> en index.html.
+// Orden: ?lang= de la URL (los links hreflang) > preferencia guardada > idiomas del navegador > inglés.
+// Si cambia esta lógica, también hay que cambiar el script del <head> en seo/staticHtml.ts.
 function initialLang(): Lang {
   const param = new URLSearchParams(location.search).get('lang')
-  if (param === 'en' || param === 'es') return param
+  if (isLang(param)) return param
   try {
     const saved = localStorage.getItem('lang')
-    if (saved === 'es' || saved === 'en') return saved
+    if (isLang(saved)) return saved
   } catch {}
-  return navigator.language?.toLowerCase().startsWith('es') ? 'es' : navigator.language ? 'en' : 'es'
+  for (const l of navigator.languages ?? [navigator.language]) {
+    const code = l?.slice(0, 2).toLowerCase()
+    if (isLang(code)) return code
+  }
+  return navigator.language ? 'en' : 'es'
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
@@ -25,10 +30,15 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     document.title = meta.title
     document.querySelector('meta[name="description"]')?.setAttribute('content', meta.description)
     try { localStorage.setItem('lang', lang) } catch {}
+    // un ?lang= en la URL no puede contradecir la elección hecha en el sitio
+    const url = new URL(location.href)
+    if (url.searchParams.has('lang') && url.searchParams.get('lang') !== lang) {
+      url.searchParams.set('lang', lang)
+      history.replaceState(null, '', url)
+    }
   }, [lang])
 
-  const toggle = useCallback(() => setLang(l => (l === 'es' ? 'en' : 'es')), [])
-  const value = useMemo(() => ({ lang, t: dictionaries[lang], toggle }), [lang, toggle])
+  const value = useMemo(() => ({ lang, t: dictionaries[lang], setLang }), [lang])
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }
 

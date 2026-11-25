@@ -20,6 +20,26 @@ export function Magnetic({ children, intensity = 0.3 }: { children: ReactNode; i
   )
 }
 
+/** Inclinación 3D hacia el cursor, con un brillo que lo sigue. Solo con mouse. */
+export function Tilt({ children, max = 9 }: { children: ReactNode; max?: number }) {
+  const rx = useSpring(useMotionValue(0), { stiffness: 180, damping: 16, mass: 0.5 })
+  const ry = useSpring(useMotionValue(0), { stiffness: 180, damping: 16, mass: 0.5 })
+  const onMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'mouse') return
+    const r = e.currentTarget.getBoundingClientRect()
+    const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height
+    ry.set((x - 0.5) * max * 2)
+    rx.set((0.5 - y) * max * 2)
+    e.currentTarget.style.setProperty('--gx', `${(x * 100).toFixed(1)}%`)
+    e.currentTarget.style.setProperty('--gy', `${(y * 100).toFixed(1)}%`)
+  }
+  return (
+    <motion.div className="tilt" style={{ rotateX: rx, rotateY: ry, transformPerspective: 800 }} onPointerMove={onMove} onPointerLeave={() => { rx.set(0); ry.set(0) }}>
+      {children}
+    </motion.div>
+  )
+}
+
 const digitSpring = { stiffness: 280, damping: 24, mass: 0.3 }
 
 function Num({ mv, n }: { mv: MotionValue<number>; n: number }) {

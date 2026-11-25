@@ -1,5 +1,6 @@
-import { motion } from 'motion/react'
-import type { ReactNode } from 'react'
+import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { useRef, useState, type ReactNode } from 'react'
+import { isLite } from '../lib/perf'
 
 // Curvas de Emil Kowalski: ease-out fuerte para entradas, ease-in-out para movimiento en pantalla
 export const ease = {
@@ -21,6 +22,17 @@ export function Rise({ children, delay = 0, className, as = 'div' }: { children:
       {children}
     </Tag>
   )
+}
+
+/** Paralaje: se adelanta (speed > 0) o se atrasa respecto del scroll. Con `wide`, solo en pantallas de varias columnas. */
+export function Parallax({ children, speed, className, wide = false }: { children: ReactNode; speed: number; className?: string; wide?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const reduce = useReducedMotion()
+  const [off] = useState(() => isLite() || (wide && !matchMedia('(min-width: 861px)').matches))
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
+  const k = reduce || off ? 0 : speed
+  const y = useTransform(scrollYProgress, p => `${((0.5 - p) * k * 100).toFixed(2)}vh`)
+  return <motion.div ref={ref} className={className} style={{ y }}>{children}</motion.div>
 }
 
 /** Título de sección: cada palabra sube desde una máscara. El observer va en el título, no en las palabras ocultas. */
