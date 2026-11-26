@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useI18n } from '../i18n/I18nProvider'
+import { trackOnce } from '../lib/analytics'
 
 const Universe = lazy(() => import('../universe/Universe'))
 
@@ -12,7 +13,7 @@ export default function World() {
   const { t } = useI18n()
   const [show, setShow] = useState(false)
   useEffect(() => {
-    if (!supportsWebGL()) { document.documentElement.classList.add('no-3d'); return }
+    if (!supportsWebGL()) { document.documentElement.classList.add('no-3d'); trackOnce('3D · Sin WebGL 2'); return }
     const ric = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200))
     const id = ric(() => setShow(true), { timeout: 1200 })
     return () => (window.cancelIdleCallback ?? clearTimeout)(id)

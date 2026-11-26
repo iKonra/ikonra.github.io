@@ -9,6 +9,7 @@ import Journey from './sections/Journey'
 import Contact from './sections/Contact'
 import Descent from './sections/Descent'
 import { useLenis } from '@/hooks/useLenis'
+import { useAnalytics } from '@/hooks/useAnalytics'
 import Cursor from './components/Cursor'
 import Hud from './components/Hud'
 import World from './components/World'
@@ -16,6 +17,7 @@ import Stardust from './components/Stardust'
 
 export default function App() {
   useLenis()
+  useAnalytics()
   return (
     <I18nProvider>
       <MotionConfig reducedMotion="user">

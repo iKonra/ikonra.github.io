@@ -8,6 +8,7 @@ function flag() {
   const subscribe = (cb: () => void) => { subs.add(cb); return () => { subs.delete(cb) } }
   return {
     get,
+    subscribe,
     set(v: boolean) { if (v !== value) { value = v; subs.forEach(f => f()) } },
     use: () => useSyncExternalStore(subscribe, get, () => false),
   }

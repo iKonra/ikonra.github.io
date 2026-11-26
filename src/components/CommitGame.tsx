@@ -4,6 +4,7 @@ import { links } from '../i18n/content'
 import { useI18n } from '../i18n/I18nProvider'
 import { prefersReducedMotion } from '../lib/perf'
 import { travelTo } from '../lib/scroll'
+import { trackOnce } from '../lib/analytics'
 import { GithubIcon } from './ContactLinks'
 
 // Mini juego con el calendario real de GitHub: cada cuadro es un día y su color, cuánto se hizo ese día.
@@ -186,7 +187,7 @@ export default function CommitGame() {
               if (rnd() < 0.2 && S.bugs.length < 4) S.bugs.push({ x: c.x + 2, y: c.y + 4, v: 17 + rnd() * 13 + S.broken * 0.06, p: rnd() * 6 })
               if (S.broken % 24 === 0) S.stars.push({ x: c.x + 2, y: c.y })
               show()
-              if (S.broken >= activeDays) { if (S.mode === 'play') go('win'); else S.rest = 2.5 }
+              if (S.broken >= activeDays) { if (S.mode === 'play') { go('win'); trackOnce('Juego · GitHub completo') } else S.rest = 2.5 }
             }
           }
         }
@@ -278,6 +279,7 @@ export default function CommitGame() {
       S.idle = 0
       if (S.mode === 'play') return
       reset('play')
+      trackOnce('Juego · GitHub')
       // si la pantalla del juego no entra entera, se centra
       const r = box.getBoundingClientRect()
       if (r.top < 70 || r.bottom > innerHeight - 70) travelTo(scrollY + r.top - Math.max(70, (innerHeight - r.height) / 2))

@@ -4,6 +4,7 @@ import { useI18n } from '../i18n/I18nProvider'
 import { ease } from './motion'
 import { isLite, prefersReducedMotion } from '../lib/perf'
 import { BONE, SKULL, sprite } from './pixelArt'
+import { trackOnce } from '../lib/analytics'
 
 /** Mini juego de TwoBones: una calavera que salta huesos. Tocá, hacé click o apretá espacio. */
 export function GameFragment({ play = true }: { play?: boolean }) {
@@ -84,7 +85,7 @@ export function GameFragment({ play = true }: { play?: boolean }) {
     const kick = () => { if (!raf && visible) { last = 0; raf = requestAnimationFrame(step) } }
 
     jumpRef.current = () => {
-      if (g.mode !== 'run') { reset(); g.mode = 'run'; setState('run') }
+      if (g.mode !== 'run') { reset(); g.mode = 'run'; setState('run'); trackOnce('Juego · TwoBones') }
       if (g.y === 0) g.vy = h * 1.25
       kick()
     }

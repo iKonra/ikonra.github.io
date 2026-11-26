@@ -6,6 +6,7 @@ import VariableProximity from '../components/VariableProximity'
 import { Magnetic } from '../components/effects'
 import { useTicker } from '../lib/ticker'
 import { J, burst, layout, smooth } from '../universe/state'
+import { trackOnce } from '../lib/analytics'
 
 // Sin animaciones de entrada que oculten el texto: el contenido principal se ve apenas carga el CSS.
 export default function Hero() {
@@ -14,7 +15,7 @@ export default function Hero() {
   const root = useRef<HTMLElement>(null)
   const reduce = useReducedMotion()
   const [galaxy, setGalaxy] = useState(J.galaxy)
-  const morph = () => setGalaxy(burst())
+  const morph = () => { trackOnce('Cambiar galaxia'); setGalaxy(burst()) }
 
   // Al scrollear, la cámara entra en la galaxia: las letras se abren y pasan de largo
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })

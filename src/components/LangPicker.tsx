@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useI18n } from '../i18n/I18nProvider'
 import { langCodes, langs } from '../i18n/langs'
 import { ease } from './motion'
+import { track } from '../lib/analytics'
 
 /** Selector de idioma. Cada idioma figura con su propio nombre, para reconocerlo sin saber el actual. */
 export default function LangPicker() {
@@ -55,7 +56,7 @@ export default function LangPicker() {
                   role="menuitemradio"
                   aria-checked={code === lang}
                   lang={code}
-                  onClick={() => { setLang(code); setOpen(false); button.current?.focus({ preventScroll: true }) }}
+                  onClick={() => { if (code !== lang) track('Idioma', { idioma: code }); setLang(code); setOpen(false); button.current?.focus({ preventScroll: true }) }}
                 >
                   <span>{langs[code].name}</span>
                   {code === lang && <Check size={16} aria-hidden />}
