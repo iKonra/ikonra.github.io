@@ -66,8 +66,8 @@ export default function Readout({ short = false }: { short?: boolean }) {
     setKind(k)
     if (!dist.current || Math.abs(v - prev.current) < 2e-4) return
     prev.current = v
-    // en el atlas no hay distancia a la Tierra que valga: se muestra el estado del objeto (hipotético, futuro…)
-    if (k === 'atlas') { const i = atlasIndex(v); dist.current.textContent = i < 0 ? `${t.atlas.place} · ${ATLAS_COUNT}` : `${t.atlas.items[i].status} · ${i + 1}/${ATLAS_COUNT}`; return }
+    // en el atlas no hay distancia a la Tierra que valga: solo en qué objeto de los ocho se va
+    if (k === 'atlas') { dist.current.textContent = `${Math.max(atlasIndex(v), 0) + 1}/${ATLAS_COUNT}`; return }
     dist.current.textContent = format(distanceLy(v))
   })
 
@@ -76,7 +76,7 @@ export default function Readout({ short = false }: { short?: boolean }) {
   return (
     <p className="readout" aria-hidden>
       <span className="readout-place" key={String(place) + lang}>{name}</span>
-      <span className="readout-label">{loading ? t.hud.loading : kind === 'atlas' ? t.atlas.status : t.hud[kind]}</span>
+      <span className="readout-label">{loading ? t.hud.loading : kind === 'atlas' ? t.atlas.place : t.hud[kind]}</span>
       {loading ? <span key="load" className="readout-value">{load} %</span> : <span key="dist" className="readout-value" ref={dist} />}
     </p>
   )

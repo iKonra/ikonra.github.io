@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { tex } from './assets'
 import { fsVertex, hash, noise3 } from './glsl'
@@ -8,7 +8,7 @@ import { tri } from './Pipeline'
 import { U } from './shared'
 import { skyLookup, skyQuaternion } from './Sky'
 import type { Quality } from './quality'
-import { compilePass, started } from './warm'
+import { beforeStart, compilePass, gpuDone } from './warm'
 
 // Sagitario A*: cada píxel sigue la trayectoria de un rayo de luz en la métrica de Schwarzschild (radio = 1).
 // El cielo, el disco y el título "Proyectos" (que flota detrás) se ven deformados por la gravedad de verdad, sin trucos.
@@ -221,8 +221,16 @@ export default function BlackHole({ q, title }: { q: Quality; title: string }) {
     return { rt, canvas, text, mat, out, scene, cam, warm: 0, ready: false }
   }, [gl, q.holeSteps, q.bigTex])
 
-  useEffect(() => {
-    void started.then(() => compilePass(gl, p.scene, p.cam, p.rt)).then(() => { p.ready = true })
+  useLayoutEffect(() => {
+    // compilar no alcanza: en Windows el primer dibujo en este destino doble recompila el shader (~1 s con la GPU parada).
+    // Se hace antes de mostrar el inicio, no cuando ya se está mirando.
+    beforeStart(compilePass(gl, p.scene, p.cam, p.rt).then(() => {
+      const keep = gl.getRenderTarget()
+      gl.setRenderTarget(p.rt)
+      gl.render(p.scene, p.cam)
+      gl.setRenderTarget(keep)
+      return gpuDone(gl)
+    }).then(() => { p.ready = true }))
     return () => { p.rt.dispose(); p.mat.dispose(); p.out.dispose(); p.text.dispose() }
   }, [p, gl])
 

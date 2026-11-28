@@ -4,7 +4,6 @@ import { useI18n } from '../i18n/I18nProvider'
 import { CodeFragment, DiscordFragment, GameFragment } from '../components/Fragments'
 import { GameCard, Metrics } from '../components/ProjectExtras'
 import { Arrow } from './Hero'
-import { isLite } from '../lib/perf'
 import { hold, smooth, worldColors } from '../universe/state'
 import type { Project } from '../i18n/content'
 
@@ -48,19 +47,19 @@ function Card({ p, i, total, active }: { p: Project; i: number; total: number; a
   )
 }
 
-type PanelProps = { p: Project; i: number; total: number; index: MotionValue<number>; enter: MotionValue<number>; active: boolean; soft: boolean }
+type PanelProps = { p: Project; i: number; total: number; index: MotionValue<number>; enter: MotionValue<number>; active: boolean }
 
-/** Cada ficha llega desde el fondo y, al irse, pasa de largo hacia la cámara. La primera espera a que se llegue al primer mundo. */
-function Panel({ p, i, total, index, enter, active, soft }: PanelProps) {
+/** Cada ficha llega desde el fondo y, al irse, pasa de largo hacia la cámara. La primera espera a que se llegue al primer mundo.
+ *  Sin filter: blur(): con un radio distinto en cada frame, el compositor del navegador compilaba variantes nuevas y trababa hasta 300 ms. */
+function Panel({ p, i, total, index, enter, active }: PanelProps) {
   const gate = (e: number) => (i === 0 ? smooth(0.82, 1, e) : 1)
   const opacity = useTransform([index, enter], ([x, e]: number[]) => (1 - smooth(0.1, 0.4, Math.abs(x - i))) * gate(e))
   const scale = useTransform(index, x => { const d = Math.min(Math.max(x - i, -0.6), 0.6); return d < 0 ? 1 + d * 0.22 : 1 + d * 0.42 })
   const y = useTransform(index, x => `${Math.min(Math.max(i - x, -0.6), 0.6) * 12}vh`)
-  const filter = useTransform(index, x => { const b = soft ? smooth(0.08, 0.42, Math.abs(x - i)) * 10 : 0; return b > 0.15 ? `blur(${b.toFixed(1)}px)` : 'none' })
   const visibility = useTransform(opacity, o => (o < 0.004 ? 'hidden' : 'visible'))
   return (
     <motion.article className="panel" style={{ opacity, visibility }} inert={!active}>
-      <motion.div className="panel-inner" style={{ scale, y, filter }}>
+      <motion.div className="panel-inner" style={{ scale, y }}>
         <Card p={p} i={i} total={total} active={active} />
       </motion.div>
     </motion.article>
@@ -96,7 +95,6 @@ function ProjectsFlight() {
   const index = useTransform(scrollYProgress, p => hold(p * last, last))
   const gone = useTransform(leave, v => 1 - smooth(0.05, 0.6, v))
   const [active, setActive] = useState(0)
-  const [soft] = useState(() => !isLite())
   useMotionValueEvent(index, 'change', i => setActive(Math.round(i)))
 
   return (
@@ -106,7 +104,7 @@ function ProjectsFlight() {
       <div className="gap gap-wormhole" aria-hidden />
       <div id="worlds" ref={track} className="worlds" style={{ height: `${items.length * 110}vh` }}>
         <motion.div className="worlds-sticky" style={{ opacity: gone }}>
-          {items.map((p, i) => <Panel key={p.id} p={p} i={i} total={items.length} index={index} enter={enter} active={active === i} soft={soft} />)}
+          {items.map((p, i) => <Panel key={p.id} p={p} i={i} total={items.length} index={index} enter={enter} active={active === i} />)}
         </motion.div>
       </div>
       <div className="gap gap-short" aria-hidden />

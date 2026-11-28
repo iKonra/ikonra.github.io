@@ -121,7 +121,7 @@ function atlasKeys(): Key[] {
   const out: Key[] = [
     // el último mundo queda atrás: la nave acelera hacia el espacio vacío
     { t: 9.07, pos: add(W[4], 5, 1.6, -10), look: add(W[4], 40, 8, -150), fov: 66, roll: 0.08, sky: 0.5, stars: 1, bloom: 1.1, light: [-0.75, 0.4, 0.55], lightColor: '#e6eaff', tint: worldColors[4], ...fly },
-    // ---- salto: el vivero de estrellas, con el título del atlas
+    // ---- salto: el vivero de estrellas
     { t: T.atlas, cut: true, pos: at(o, h, -30), look: at(o, h, 120), fov: 72, roll: 0.05, ...deep, lightColor: '#cfe0ff', tint: '#8fb8ff', ...fly },
     { t: T.atlas + 0.06, pos: v3(o), look: at(o, h, 120), fov: 50, roll: -0.02, ...deep, lightColor: '#ffd2a6', tint: '#ffa36a', ship: [0.12, -0.5, 0.62], shipN: [0.1, -0.42, 0.42], shift: [0, 0], shiftN: [0, 0] },
   ]

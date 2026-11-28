@@ -108,17 +108,17 @@ function measure() {
   if (a) { push(a.top - vh * 0.1, T.about); push(a.bottom - vh * 1.05, T.aboutEnd) }
   if (h) { push(h.top, T.hole); push(h.bottom - vh, T.horizon) }
   if (w) { worldsTop = w.top; worldsLen = Math.max(1, w.bottom - vh - w.top); push(w.top, T.worlds); push(w.bottom - vh, T.worlds + WORLD_COUNT - 1) }
-  // atlas: salto, portada (el título sobre el vivero de estrellas), una parada por objeto y salto de vuelta
-  const ah = rect('atlas-head'), at = rect('atlas-track'), ao = rect('atlas-out')
+  // atlas: un tramo del viaje, sin paradas: salto, vivero de estrellas, los ocho objetos de pasada y salto al cinturón de Kuiper
+  const at = rect('atlas-track')
   atlasLen = 0
-  if (ah && at && ao) {
-    push(ah.top - vh * 0.2, T.atlas + 0.035)
-    push(ah.bottom - vh * 1.1, T.atlas + 0.06)
-    atlasTop = at.top
-    atlasLen = Math.max(1, at.bottom - vh - at.top)
-    push(at.top, T.atlasFirst)
-    push(at.bottom - vh, ATLAS_LAST)
-    push(ao.bottom - vh * 0.6, T.atlasOut + 0.04)
+  if (at) {
+    const len = Math.max(1, at.bottom - vh - at.top)
+    push(at.top, T.atlas - 0.03)
+    atlasTop = at.top + len * 0.18
+    atlasLen = len * 0.7
+    push(atlasTop, T.atlasFirst)
+    push(atlasTop + atlasLen, ATLAS_LAST)
+    push(at.bottom - vh, T.atlasOut + 0.04)
   }
   if (s) { push(s.top - vh * 0.25, T.stack); push(s.bottom - vh * 0.8, T.stackEnd) }
   if (j) { push(j.top - vh * 0.15, T.journey); push(j.bottom - vh * 0.75, T.journeyEnd) }
@@ -144,10 +144,16 @@ export function hold(raw: number, last: number) {
   return Math.min(k + u * u * (3 - 2 * u), last)
 }
 
+/** En el atlas no se frena: la cámara solo afloja un poco al pasar junto a cada objeto. */
+function glide(raw: number) {
+  const k = Math.floor(raw), f = raw - k
+  return k + f + (f * f * (3 - 2 * f) - f) * 0.6
+}
+
 export function scrollToT(y: number) {
   const last = WORLD_COUNT - 1
   if (y > worldsTop && y < worldsTop + worldsLen && worldsLen > 1) return T.worlds + hold(((y - worldsTop) / worldsLen) * last, last)
-  if (atlasLen > 1 && y > atlasTop && y < atlasTop + atlasLen) return T.atlasFirst + hold(((y - atlasTop) / atlasLen) * (ATLAS_COUNT - 1), ATLAS_COUNT - 1) * ATLAS_STEP
+  if (atlasLen > 1 && y > atlasTop && y < atlasTop + atlasLen) return T.atlasFirst + glide(((y - atlasTop) / atlasLen) * (ATLAS_COUNT - 1)) * ATLAS_STEP
   let i = 0
   while (i < anchors.length - 2 && y > anchors[i + 1].y) i++
   const a = anchors[i], b = anchors[i + 1]

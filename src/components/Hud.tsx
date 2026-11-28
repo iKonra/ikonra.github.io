@@ -11,7 +11,7 @@ import Tools from './Tools'
 
 const ABOUT_STOP = 1.7
 /** t de cada parada de la ruta, en orden. */
-const stops = [T.top, ABOUT_STOP, T.hole, 5, 6, 7, 8, 9, T.atlasFirst, T.stack, T.journey, T.contact] as const
+const stops = [T.top, ABOUT_STOP, T.hole, 5, 6, 7, 8, 9, T.stack, T.journey, T.contact] as const
 
 /** Ruta del viaje: una estrella por parada y una nave que avanza. */
 function Rail() {
@@ -24,7 +24,6 @@ function Rail() {
     [t.nav.about, h.nebula],
     [t.nav.projects, h.hole],
     ...t.projects.items.map((p, i): [string, string] => [p.title, `${t.nav.projects} ${i + 1}/${t.projects.items.length}`]),
-    [t.atlas.title, t.atlas.place],
     [t.nav.stack, h.belt],
     [t.nav.journey, h.saturn],
     [t.nav.contact, h.earth],

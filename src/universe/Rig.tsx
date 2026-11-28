@@ -41,7 +41,8 @@ export default function Rig({ still }: { still: boolean }) {
     return () => { removeEventListener('pointermove', onMove); removeEventListener('pointerdown', onDown) }
   }, [])
 
-  useEffect(() => { if (import.meta.env.DEV) (window as unknown as { __J: { scene: unknown } }).__J.scene = scene }, [scene])
+  const gl = useThree(s => s.gl)
+  useEffect(() => { const w = window as unknown as { __J?: { scene: unknown; gl: unknown } }; if (w.__J) { w.__J.scene = scene; w.__J.gl = gl } }, [scene, gl])
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05)
