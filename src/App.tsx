@@ -4,6 +4,7 @@ import Nav from './sections/Nav'
 import Hero from './sections/Hero'
 import About from './sections/About'
 import Projects from './sections/Projects'
+import Atlas from './sections/Atlas'
 import Stack from './sections/Stack'
 import Journey from './sections/Journey'
 import Contact from './sections/Contact'
@@ -29,6 +30,7 @@ export default function App() {
           <Hero />
           <About />
           <Projects />
+          <Atlas />
           <Stack />
           <Journey />
           <Contact />

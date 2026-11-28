@@ -7,7 +7,7 @@ import type { Quality } from '../quality'
 import { U, mulberry } from '../shared'
 
 // La ciudad de noche, en metros y en manzanas de 120 m como las de acá: calles con faroles, casas bajas, algunas torres,
-// autos, una laguna y un puente colgante. Todo procedural. El monitor está en el origen, en un octavo piso: el suelo queda abajo.
+// autos con estela, una laguna y un puente colgante. Todo procedural. El monitor está en el origen, en un octavo piso: el suelo queda abajo.
 
 const G = -24.3
 /** Calles: centros en x = 60 + 120 i, z = 14 + 120 j. */
@@ -19,8 +19,17 @@ const SHORE = /* glsl */ `float shore(float x){ return -760. + sin(x * .0042) * 
 float water(vec2 p){ float s = shore(p.x); return smoothstep(0., -4., p.y - s) * smoothstep(-404., -400., p.y - s); }`
 
 const fog = /* glsl */ `
-vec3 haze(vec3 dir){ float h = max(dir.y, 0.); return mix(mix(vec3(.058, .040, .046), vec3(.020, .023, .050), smoothstep(0., .09, h)), vec3(.004, .007, .022), smoothstep(.04, .40, h)); }
-vec3 applyFog(vec3 c, vec3 w){ vec3 d = w - cameraPosition; float l = length(d); return mix(c, haze(d / l), 1. - exp(-pow(l * .00027, 1.5))); }`
+vec3 haze(vec3 dir){
+  float h = max(dir.y, 0.);
+  // el alumbrado tiñe el cielo: naranja sodio pegado al horizonte, violeta más arriba y negro en el cenit
+  return mix(mix(vec3(.115, .056, .03), vec3(.032, .026, .052), smoothstep(0., .08, h)), vec3(.004, .007, .022), smoothstep(.04, .36, h));
+}
+vec3 applyFog(vec3 c, vec3 w){
+  vec3 d = w - cameraPosition; float l = length(d);
+  // la niebla baja está iluminada por la ciudad
+  vec3 hz = haze(d / l) + vec3(.034, .016, .007) * exp(-max(w.y - (${G.toFixed(1)}), 0.) / 70.);
+  return mix(c, hz, 1. - exp(-pow(l * .00027, 1.5)));
+}`
 
 const groundVertex = /* glsl */ `varying vec3 vW; void main(){ vec4 p = vec4(position, 1.);
 #ifdef USE_INSTANCING
@@ -104,7 +113,8 @@ void main(){
 
 const boxVertex = /* glsl */ `
 attribute vec4 aS; // semilla, piso de planta baja, tono, altura
-varying vec3 vW; varying vec3 vNw; varying vec4 vS; varying vec2 vF;
+// flat: la semilla entra en un hash, y la interpolación le cambia el último bit de un píxel a otro (ventanas con ruido)
+varying vec3 vW; varying vec3 vNw; flat varying vec4 vS; varying vec2 vF;
 void main(){
   vec4 w = modelMatrix * instanceMatrix * vec4(position, 1.);
   vW = w.xyz; vNw = normalize(mat3(instanceMatrix) * (normal / vec3(dot(instanceMatrix[0].xyz, instanceMatrix[0].xyz), dot(instanceMatrix[1].xyz, instanceMatrix[1].xyz), dot(instanceMatrix[2].xyz, instanceMatrix[2].xyz))));
@@ -118,7 +128,8 @@ const facade = /* glsl */ `
 float pane(vec2 f, vec2 lo, vec2 hi, float w){ vec2 a = smoothstep(lo - w, lo + w, f) * smoothstep(hi + w, hi - w, f); return a.x * a.y; }
 vec3 street(float y){ return vec3(1., .56, .24) * (exp(-max(y - ${G.toFixed(1)}, 0.) / 7.) * .95 + .10); }`
 const boxFragment = /* glsl */ `
-varying vec3 vW; varying vec3 vNw; varying vec4 vS; varying vec2 vF;
+varying vec3 vW; varying vec3 vNw; flat varying vec4 vS; varying vec2 vF;
+uniform float uTime;
 ${hash}
 ${fog}
 ${facade}
@@ -129,18 +140,36 @@ void main(){
   if(n.y > .5){
     vec2 q = floor(vW.xz / 2.2);
     col = plaster * vec3(.055, .085, .17) * (.5 + .55 * hash21(q));
+    // algunas terrazas con claraboya o luz de escalera
+    col += vec3(1., .62, .3) * step(.985, hash21(floor(vW.xz / 3.) + vS.x * 7.)) * .5;
   } else {
-    float side = n.x * 3. + n.z;
+    // la normal interpolada no es exacta: se redondea antes de que entre en el hash
+    float side = floor(n.x + .5) * 3. + floor(n.z + .5);
     vec2 cell = vec2(3.4, 3.1), id = floor(vF / cell), f = fract(vF / cell);
     float w = clamp(fwidth(vF.y) * .35, .02, .5);
-    float win = pane(f, vec2(.24, .3), vec2(.76, .74), w) * step(1.2, vF.y) * (1. - smoothstep(380., 900., far) * .5);
+    float win = pane(f, vec2(.24, .3), vec2(.76, .74), w) * step(1.2, vF.y) * step(vF.y, vS.w - .9) * (1. - smoothstep(380., 900., far) * .5);
     float r = hash21(id + vS.x * 91. + side * 7.);
-    float on = step(.885, r);
-    vec3 lamp = mix(vec3(1., .62, .28), mix(vec3(.75, .85, 1.), vec3(.35, .5, 1.), step(.97, r)), step(.94, hash21(id + vS.x * 13.)));
+    // vS.y = cuánta gente hay despierta en este edificio; en algunas torres quedan pisos de oficina enteros encendidos
+    float office = step(20., vS.w) * step(.6, hash11(vS.x * 53.)) * step(.66, hash21(vec2(id.y, vS.x * 37. + side)));
+    float on = max(step(1. - vS.y, r), office * step(.1, r));
+    float kind = hash21(id + vS.x * 13.);
+    vec3 lamp = kind < .5 ? vec3(1., .6, .26) : kind < .78 ? vec3(1., .8, .55) : kind < .93 ? vec3(.78, .86, 1.) : vec3(.38, .52, 1.) * (.6 + .4 * sin(uTime * 7. + r * 40.) * sin(uTime * 1.9 + r * 9.));
+    lamp = mix(lamp, vec3(.86, .92, 1.), office);
+    float curtain = step(.55, hash21(id + 3.1 + vS.x)) * (1. - office);
     col = plaster * (street(vW.y) * (.55 + .45 * abs(n.z)) * .8 + vec3(.040, .056, .105) * (1. + max(dot(n, normalize(vec3(-.3, .35, -.8))), 0.) * 1.6));
+    // el resplandor naranja del cielo también pega en las paredes
+    col += plaster * vec3(.05, .025, .012);
+    // losas, pilares entre vanos, base más oscura y remate de la terraza
     col *= 1. - .3 * step(.97, fract(vF.y / 3.1));
+    col *= 1. - .22 * (1. - smoothstep(0., .07, min(f.x, 1. - f.x))) * (1. - smoothstep(300., 700., far));
+    col *= .5 + .5 * smoothstep(0., 4.5, vF.y);
+    col = mix(col, col * 1.6 + vec3(.012, .009, .007), smoothstep(vS.w - .7, vS.w - .5, vF.y));
     col = mix(col, vec3(.010, .014, .022), win);
-    col += lamp * win * on * (.25 + .75 * hash21(id + 4.)) * 1.25;
+    vec3 light = lamp * on * mix(1., .4, curtain) * (.3 + .7 * hash21(id + 4.)) * 1.35;
+    col += light * win;
+    // la luz de la ventana se derrama un poco sobre el revoque
+    vec2 g = (f - vec2(.5, .52)) * vec2(1., 1.15);
+    col += light * plaster * exp(-dot(g, g) * 9.) * .5 * (1. - win) * step(1.2, vF.y);
   }
   gl_FragColor = vec4(applyFog(col, vW), 1.);
 }`
@@ -203,32 +232,43 @@ void main(){
   float e = min(s * s / 3., 1.);
   vK = uMirror > .5 ? 0. : smoothstep(6., 2.2, s * 1.35); // muy chico: un punto parejo
   float f = exp(-pow(z * .00026, 1.35));
-  vC = vec4(aC.rgb, (.85 + .15 * e) * f * smoothstep(1.5, 7., z) * (.92 + .08 * sin(uTime * 3. + position.x)));
+  float red = step(.9, aC.r) * step(aC.g, .2);
+  float blink = mix(1., .08 + .92 * step(.55, fract(uTime * .55 + position.x * .0137 + position.z * .0071)), red);
+  vC = vec4(aC.rgb, (.85 + .15 * e) * f * smoothstep(1.5, 7., z) * (.92 + .08 * sin(uTime * 3. + position.x)) * blink);
 }`
 const lampFragment = /* glsl */ `
 varying vec4 vC; varying float vK; uniform float uMirror;
 void main(){ vec2 q = gl_PointCoord * 2. - 1.; if(uMirror > .5) q.x *= 2.6; float d = dot(q, q); float a = (exp(-d * 12.) * 1.6 + exp(-d * 3.) * .22) * smoothstep(1., .6, d); a = mix(a, .44, vK); gl_FragColor = vec4(vC.rgb * a * vC.a * (uMirror > .5 ? .5 : 4.2), 1.); }`
 
+// Autos: cada uno deja la estela de lo que recorrió en el último segundo y medio, como en una foto de larga exposición.
+// Blancas las que vienen hacia la cámara, rojas las que se alejan.
 const carVertex = /* glsl */ `
 attribute vec4 aCar; // calle, sentido/eje, fase, velocidad
-uniform float uPx, uTime; varying vec4 vC; varying float vK;
+uniform float uPx, uTime; varying vec4 vC; varying vec2 vQ;
 void main(){
   float axis = step(.5, fract(aCar.y * .5 + .01)), dir = aCar.y > 1.5 ? 1. : -1.;
-  float run = mod(aCar.z * 2200. + uTime * aCar.w * dir, 2200.) - 1100.;
+  // el tránsito se concentra en el centro, que es lo que se ve de cerca
+  float run = mod(aCar.z * 1300. + uTime * aCar.w * dir, 1300.) - 650.;
   float lane = aCar.x + dir * 2.6;
-  vec3 q = axis > .5 ? vec3(run, ${(G + 0.8).toFixed(1)}, lane) : vec3(lane, ${(G + 0.8).toFixed(1)}, run);
-  q.z = max(q.z, -680.);
+  vec3 head = axis > .5 ? vec3(run, ${(G + 0.8).toFixed(1)}, lane) : vec3(lane, ${(G + 0.8).toFixed(1)}, run);
+  head.z = max(head.z, -680.);
   vec3 fwd = (axis > .5 ? vec3(1., 0., 0.) : vec3(0., 0., 1.)) * dir;
-  vec4 mv = viewMatrix * vec4(q, 1.);
-  gl_Position = projectionMatrix * mv;
-  float z = length(mv.xyz), face = dot(normalize(cameraPosition - q), fwd);
-  gl_PointSize = clamp(uPx * 2.4 / z, 1.6, 20.);
-  vK = smoothstep(6., 2.2, uPx * 2.4 / z);
-  vC = vec4(mix(vec3(1., .10, .05) * .8, vec3(1., .95, .85) * 1.5, step(0., face)), exp(-pow(z * .0003, 1.35)));
+  vec3 toCam = cameraPosition - head; float z = length(toCam); toCam /= z;
+  vec3 sd = cross(fwd, toCam); sd = length(sd) > 1e-4 ? normalize(sd) : vec3(0., 1., 0.);
+  // nunca más finas que un par de píxeles
+  float wid = max(1., z * 2.2 / uPx), len = aCar.w * 1.5;
+  vec3 p = head - fwd * (position.x + .5) * len + sd * position.y * wid;
+  gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.);
+  float face = dot(toCam, fwd);
+  vC = vec4(mix(vec3(1., .09, .04), vec3(1., .92, .78) * 1.5, step(0., face)), exp(-pow(z * .0003, 1.35)));
+  vQ = vec2(position.x + .5, position.y * 2.);
 }`
+const carFragment = /* glsl */ `
+varying vec4 vC; varying vec2 vQ;
+void main(){ float a = pow(max(1. - vQ.x, 0.), 1.4) * exp(-vQ.y * vQ.y * 3.) * (1. + 2.5 * exp(-vQ.x * 40.)); gl_FragColor = vec4(vC.rgb * a * vC.a * 2.4, 1.); }`
 
 const treeFragment = /* glsl */ `
-varying vec3 vW; varying vec3 vNw; varying vec4 vS; varying vec2 vF;
+varying vec3 vW; varying vec3 vNw; flat varying vec4 vS; varying vec2 vF;
 ${hash}
 ${noise3}
 ${fog}
@@ -265,7 +305,8 @@ function build(q: Quality) {
   const isWater = (x: number, z: number) => z < shore(x) + 14
   // ---- casas y torres
   const boxes: number[][] = []
-  const put = (x: number, z: number, w: number, d: number, h: number) => { if (!isWater(x, z)) boxes.push([x, z, w, d, h]) }
+  // un poco de altura al azar: dos techos a la misma altura que se pisan titilan
+  const put = (x: number, z: number, w: number, d: number, h: number) => { if (!isWater(x, z)) boxes.push([x, z, w, d, h + rnd() * 0.3]) }
   const n = Math.ceil(reach / CELL)
   for (let i = -n; i <= n; i++) for (let j = -n; j <= n; j++) {
     const cx = i * CELL, cz = SZ + CELL / 2 + j * CELL // centro de la manzana
@@ -275,14 +316,19 @@ function build(q: Quality) {
     const step = Math.hypot(cx, cz) < 320 || full ? 10 : 20
     for (let s = 0; s < 4; s++) for (let a = -50; a < 50; a += step) {
       if (rnd() < 0.09) continue
-      const depth = 14 + rnd() * 16, w = step * (0.9 + rnd() * 0.1)
+      const t = a + step / 2
+      // el de la esquina llega justo a la esquina: su costado es la fachada de la calle transversal
+      const depth = 14 + rnd() * 16, wr = step * (0.9 + rnd() * 0.1)
+      const w = s < 2 && Math.abs(t) > 34 ? step : wr
       let h = 3.4 + rnd() * rnd() * 5
       if (rnd() < 0.05 + dense * 0.3) h = 14 + rnd() * 22 + dense * rnd() * 26
-      const t = a + step / 2
       const x = s === 0 ? t : s === 1 ? t : s === 2 ? -50 + depth / 2 : 50 - depth / 2
       const z = s === 0 ? 50 - depth / 2 : s === 1 ? -50 + depth / 2 : t
       if ((s > 1 && Math.abs(t) > 34) || (s < 2 && h > 14 && Math.abs(t) > 46)) continue
-      const X = cx + x, Z = cz + z
+      // cada fachada entra distinto, y siempre al menos 25 cm detrás del costado del edificio de la esquina:
+      // dos paredes casi en el mismo plano titilan (y la aberración las pinta de rojo y azul)
+      const inset = 0.25 + rnd() * 0.45
+      const X = cx + x + (s === 2 ? inset : s === 3 ? -inset : 0), Z = cz + z + (s === 0 ? -inset : s === 1 ? inset : 0)
       // alrededor de nuestro edificio todo es bajo: la ventana tiene que reinar
       if (i === 0 && j === -1) { if (Math.abs(X) < 9.4 + w / 2 && Z > -22) continue; h = Math.min(h, Math.abs(X) < 34 ? 6.5 : 13) }
       if (Math.abs(i) <= 1 && j >= 0 && j <= 2) h = Math.min(h, 9)
@@ -291,13 +337,25 @@ function build(q: Quality) {
   }
   // nuestro edificio: tanque y cuarto de máquinas en la terraza
   boxes.push([-3, -6, 5, 5, 24.3 + 9 + 3.2], [5, -8, 2.4, 2.4, 24.3 + 9 + 2.2])
+  // en las terrazas: tanque de agua sobre su base, alguna sala de máquinas y antenas en las torres
+  const roof: number[][] = []
+  boxes.forEach(([x, z, w, d, h]) => {
+    if (h < 8 || h > 33 && rnd() < 0.2) return
+    if (rnd() < 0.62) {
+      const ox = (rnd() - 0.5) * Math.max(0, w - 4), oz = (rnd() - 0.5) * Math.max(0, d - 4)
+      roof.push([x + ox, z + oz, 2.6, 2.6, 1.1, h], [x + ox, z + oz, 2.2, 2.2, 1.9, h + 1.1])
+    }
+    if (h > 18 && rnd() < 0.5) roof.push([x - w * 0.22, z + d * 0.18, Math.min(5, w * 0.35), Math.min(4, d * 0.3), 2.6, h])
+    if (h > 30) roof.push([x + w * 0.2, z - d * 0.2, 0.2, 0.2, 9, h])
+  })
   // costa de enfrente
   const box = new THREE.BoxGeometry(1, 1, 1)
   const mesh = (geo: THREE.BufferGeometry, list: number[][], mat: THREE.Material, y = 0) => {
     const m = new THREE.InstancedMesh(geo, mat, list.length), o = new THREE.Object3D(), s = new Float32Array(list.length * 4)
-    list.forEach(([x, z, w, d, h], k) => {
-      o.position.set(x, G + y + h / 2, z); o.scale.set(w, h, d); o.updateMatrix(); m.setMatrixAt(k, o.matrix)
-      s.set([rnd(), 0, rnd(), h], k * 4)
+    list.forEach(([x, z, w, d, h, base = 0], k) => {
+      o.position.set(x, G + y + base + h / 2, z); o.scale.set(w, h, d); o.updateMatrix(); m.setMatrixAt(k, o.matrix)
+      // y = cuánta gente despierta: casi todos los edificios dormidos, algunos muy vivos
+      s.set([rnd(), rnd() < 0.3 ? 0.03 : 0.07 + rnd() * rnd() * 0.32, rnd(), h], k * 4)
     })
     geo.setAttribute('aS', new THREE.InstancedBufferAttribute(s, 4))
     m.frustumCulled = false
@@ -357,9 +415,9 @@ function build(q: Quality) {
   }
   for (const z of [t0, t1]) lamp(BX, G + H + 2, z, [1, 0.12, 0.08], 3.2)
   // luces rojas en las torres altas
-  boxes.forEach(b => { if (b[4] > 44) lamp(b[0], G + b[4] + 1.5, b[1], [1, 0.1, 0.06], 2.2) })
+  roof.forEach(r => { if (r[4] === 9) lamp(r[0], G + r[5] + 9.4, r[1], [1, 0.1, 0.06], 2.2) })
   // ---- autos
-  const cars = full ? 420 : 150, A: number[] = []
+  const cars = full ? 900 : lite ? 160 : 380, A: number[] = []
   for (let k = 0; k < cars; k++) { const i = Math.round((rnd() - 0.5) * 14); A.push((k % 2 ? SZ : SX) + i * CELL, (k % 2) + (rnd() < 0.5 ? 0 : 2), rnd(), 9 + rnd() * 9) }
   // ---- árboles
   const trees: number[][] = []
@@ -373,7 +431,7 @@ function build(q: Quality) {
     const s = 4 + rnd() * 3.4
     trees.push([x, z, s, s * (0.85 + rnd() * 0.3), s * 1.05])
   }
-  return { boxes, box, mesh, L, C, A, trees, parts, line, bridge: { x: BX, z: (B0 + B1) / 2, len: B0 - B1, y: deck } }
+  return { boxes, box, mesh, L, C, A, trees, parts, roof, line, bridge: { x: BX, z: (B0 + B1) / 2, len: B0 - B1, y: deck } }
 }
 
 export default function City({ q }: { q: Quality }) {
@@ -381,15 +439,18 @@ export default function City({ q }: { q: Quality }) {
   const m = useMemo(() => {
     const d = build(q)
     const u = { uTime: U.time, uPx: { value: 900 } }
-    const boxMat = new THREE.ShaderMaterial({ vertexShader: boxVertex, fragmentShader: boxFragment })
+    const boxMat = new THREE.ShaderMaterial({ vertexShader: boxVertex, fragmentShader: boxFragment, uniforms: { uTime: U.time } })
     const treeMat = new THREE.ShaderMaterial({ vertexShader: boxVertex, fragmentShader: treeFragment })
     const lampMat = (mirror: number) => new THREE.ShaderMaterial({ vertexShader: lampVertex, fragmentShader: lampFragment, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { ...u, uMirror: { value: mirror } } })
     const lamps = new THREE.BufferGeometry()
     lamps.setAttribute('position', new THREE.Float32BufferAttribute(d.L, 3))
     lamps.setAttribute('aC', new THREE.Float32BufferAttribute(d.C, 4))
-    const cars = new THREE.BufferGeometry()
-    cars.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array((d.A.length / 4) * 3), 3))
-    cars.setAttribute('aCar', new THREE.Float32BufferAttribute(d.A, 4))
+    const strip = new THREE.PlaneGeometry(1, 1)
+    const cars = new THREE.InstancedBufferGeometry()
+    cars.index = strip.index
+    cars.setAttribute('position', strip.getAttribute('position'))
+    cars.setAttribute('aCar', new THREE.InstancedBufferAttribute(new Float32Array(d.A), 4))
+    cars.instanceCount = d.A.length / 4
     const cable = new THREE.BufferGeometry()
     cable.setAttribute('position', new THREE.Float32BufferAttribute(d.line, 3))
     const ground = new THREE.PlaneGeometry(16000, 16000)
@@ -402,11 +463,12 @@ export default function City({ q }: { q: Quality }) {
       boxes: d.mesh(d.box, d.boxes, boxMat),
       trees: d.mesh(crown(), d.trees, treeMat, 1.6),
       parts: d.mesh(new THREE.BoxGeometry(1, 1, 1), d.parts, solid),
+      roof: d.mesh(new THREE.BoxGeometry(1, 1, 1), d.roof, solid),
       groundMat: new THREE.ShaderMaterial({ vertexShader: groundVertex, fragmentShader: groundFragment }),
       waterMat: new THREE.ShaderMaterial({ vertexShader: groundVertex, fragmentShader: waterFragment, transparent: true, depthWrite: false, uniforms: { uTime: U.time } }),
       homeMat: new THREE.ShaderMaterial({ vertexShader: homeVertex, fragmentShader: homeFragment }),
       lampMat: lampMat(0), mirrorMat: lampMat(1),
-      carMat: new THREE.ShaderMaterial({ vertexShader: carVertex, fragmentShader: lampFragment, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { ...u, uMirror: { value: 0 } } }),
+      carMat: new THREE.ShaderMaterial({ vertexShader: carVertex, fragmentShader: carFragment, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, uniforms: u }),
       lineMat: new THREE.ShaderMaterial({ vertexShader: groundVertex, fragmentShader: /* glsl */ `varying vec3 vW; void main(){ gl_FragColor = vec4(vec3(.16, .12, .08) * exp(-length(vW - cameraPosition) * .0006), 1.); }` }),
       sky: new THREE.ShaderMaterial({ vertexShader: skyVertex, fragmentShader: skyFragment, side: THREE.BackSide, transparent: true, depthWrite: false, uniforms: { uA: { value: 1 } } }),
     }
@@ -430,12 +492,13 @@ export default function City({ q }: { q: Quality }) {
       <primitive object={m.boxes} />
       <primitive object={m.trees} />
       <primitive object={m.parts} />
+      <primitive object={m.roof} />
       <mesh material={m.solid} position={[m.bridge.x, m.bridge.y, m.bridge.z]}><boxGeometry args={[15, 1.2, m.bridge.len]} /></mesh>
       <lineSegments geometry={m.cable} material={m.lineMat} frustumCulled={false} />
       <points geometry={m.lamps} material={m.mirrorMat} frustumCulled={false} renderOrder={-8} />
       <mesh geometry={m.ground} material={m.waterMat} position={[0, G - 0.3, 0]} frustumCulled={false} renderOrder={-7} />
       <points geometry={m.lamps} material={m.lampMat} frustumCulled={false} renderOrder={2} />
-      <points geometry={m.cars} material={m.carMat} frustumCulled={false} renderOrder={2} />
+      <mesh geometry={m.cars} material={m.carMat} frustumCulled={false} renderOrder={2} />
     </group>
   )
 }

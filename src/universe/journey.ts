@@ -1,7 +1,8 @@
 // El viaje: convierte el scroll en un parámetro t y, a partir de t, decide dónde está la cámara y cómo es el espacio.
 // El estado y la traducción de scroll viven en state.ts (sin three.js).
 import * as THREE from 'three'
-import { J, anchorsNow, scrollToT, tToScroll, worldColors } from './state'
+import { ATLAS_COUNT, ATLAS_LAST, ATLAS_STEP, J, T, anchorsNow, atlasColors, atlasStop, scrollToT, tToScroll, worldColors } from './state'
+import { ATLAS_ORIGIN, atlasCam, atlasLegs, atlasPos, atlasViews } from './atlas/layout'
 
 export * from './state'
 
@@ -94,7 +95,9 @@ export const keys: Key[] = [
   // ---- salida del agujero de gusano: los mundos
   { t: 4.5, cut: true, pos: add(W[0], -2, 3, 70), look: add(W[0], 0, 0, 0), fov: 86, roll: 0.3, sky: 0.5, stars: 1, bloom: 1.1, light: [-0.75, 0.4, 0.55], lightColor: '#fff1dd', tint: worldColors[0], ship: [0, -0.3, 1], shipN: [0, -0.2, 0.6] },
   ...worldKeys,
-  { t: 9.5, pos: add(W[4], -5, 1.4, -14), look: add(C.belt, 0, 0, 0), fov: 54, sky: 0.7, stars: 1, bloom: 0.9, light: [-0.8, 0.45, 0.3], lightColor: '#e8f0ff', tint: '#9fb6cf', ship: [0, -0.42, 0.85], shipN: [0, -0.1, 0.55] },
+  ...atlasKeys(),
+  // ---- vuelta del atlas: el cinturón de Kuiper
+  { t: T.atlasOut, cut: true, pos: add(C.belt, -4, 5, 118), look: add(C.belt, 0, 0, 0), fov: 74, roll: 0.1, sky: 0.7, stars: 1, bloom: 0.95, light: [-0.8, 0.45, 0.3], lightColor: '#e8f0ff', tint: '#9fb6cf', ship: [0, -0.3, 0.95], shipN: [0, -0.2, 0.6] },
   { t: 10, pos: add(C.belt, 0, 1.4, 34), look: add(C.belt, -2, -1, -60), fov: 50, roll: -0.05, sky: 0.8, stars: 1, bloom: 0.85, light: [-0.8, 0.45, 0.3], lightColor: '#e8f0ff', tint: '#9fb6cf', ship: [0.72, -0.5, 0.6], shipN: [0.6, 0.7, 0.3] },
   { t: 11, pos: add(C.belt, 6, -1.5, -92), look: add(C.belt, 4, 0, -190), fov: 50, roll: 0.06, sky: 0.85, stars: 1, bloom: 0.85, light: [-0.8, 0.45, 0.3], lightColor: '#f3eee2', tint: '#b7b39f', ship: [0.8, 0.5, 0.5], shipN: [0.6, 0.7, 0.3] },
   { t: 12, pos: add(C.saturn, -30, 12, 62), look: add(C.saturn, 0, 0, 0), fov: 42, roll: -0.1, shift: [0.36, 0.12], shiftN: [0.3, 0.42], farN: 1.25, sky: 0.6, stars: 1, bloom: 0.85, light: [-0.75, 0.42, 0.5], lightColor: '#fff0d6', tint: '#e6cfa0', ship: [0.8, -0.5, 0.5], shipN: [0.6, 0.7, 0.3] },
@@ -104,6 +107,46 @@ export const keys: Key[] = [
   { t: 14, pos: add(C.earth, -1, 4.6, 24.5), look: add(C.earth, 0, 1.2, 0), fov: 40, roll: 0, shift: [0.42, -0.16], shiftN: [0.1, -0.62], farN: 1.12, sky: 0.03, stars: 1, bloom: 1, light: [-0.9, 0.3, -0.12], lightColor: '#fff6ea', tint: '#6fb4ff', ship: [0.02, 0.2, 0.42], shipN: [0.55, 0.45, 0.28] },
   ...descentKeys(),
 ]
+
+/** El atlas: se sale del último mundo por un salto, se llega a un vivero de estrellas y se recorren los ocho objetos.
+ *  En cada parada el objeto queda a la derecha (la ficha va a la izquierda); entre paradas la cámara gira hacia el próximo y vuela derecho. */
+function atlasKeys(): Key[] {
+  const v3 = (p: THREE.Vector3): [number, number, number] => [p.x, p.y, p.z]
+  const at = (p: THREE.Vector3, d: THREE.Vector3, k: number) => v3(p.clone().addScaledVector(d, k))
+  const deep = { sky: 0, stars: 0.4, bloom: 1.08, light: [0.35, 0.6, 0.7] as [number, number, number] }
+  const fly = { ship: [0, -0.36, 0.82] as [number, number, number], shipN: [0, -0.22, 0.55] as [number, number, number], shift: [0, 0] as [number, number], shiftN: [0, 0] as [number, number] }
+  const fovs = [46, 42, 50, 50, 44, 46, 44, 40]
+  const rolls = [-0.06, 0.05, -0.1, 0.08, -0.04, 0.12, -0.05, 0.03]
+  const h = atlasViews[0], o = ATLAS_ORIGIN
+  const out: Key[] = [
+    // el último mundo queda atrás: la nave acelera hacia el espacio vacío
+    { t: 9.07, pos: add(W[4], 5, 1.6, -10), look: add(W[4], 40, 8, -150), fov: 66, roll: 0.08, sky: 0.5, stars: 1, bloom: 1.1, light: [-0.75, 0.4, 0.55], lightColor: '#e6eaff', tint: worldColors[4], ...fly },
+    // ---- salto: el vivero de estrellas, con el título del atlas
+    { t: T.atlas, cut: true, pos: at(o, h, -30), look: at(o, h, 120), fov: 72, roll: 0.05, ...deep, lightColor: '#cfe0ff', tint: '#8fb8ff', ...fly },
+    { t: T.atlas + 0.06, pos: v3(o), look: at(o, h, 120), fov: 50, roll: -0.02, ...deep, lightColor: '#ffd2a6', tint: '#ffa36a', ship: [0.12, -0.5, 0.62], shipN: [0.1, -0.42, 0.42], shift: [0, 0], shiftN: [0, 0] },
+  ]
+  for (let i = 0; i < ATLAS_COUNT; i++) {
+    const ts = atlasStop(i), d = atlasViews[i + 1], P = atlasPos[i], prev = i ? atlasCam[i - 1] : o
+    const tint = atlasColors[i], look = v3(P)
+    const legKeys: Key[] = i === 0
+      ? [{ t: ts - ATLAS_STEP * 0.1, pos: at(prev, d, atlasLegs[i] * 0.5), look, fov: 54, ...deep, lightColor: '#e8eeff', tint, ...fly }]
+      : [
+          { t: ts - ATLAS_STEP * 0.62, pos: at(prev, d, atlasLegs[i] * 0.1), look, fov: 58, roll: rolls[i] * 0.5, ...deep, lightColor: '#e8eeff', tint: atlasColors[i - 1], ...fly },
+          { t: ts - ATLAS_STEP * 0.3, pos: at(prev, d, atlasLegs[i] * 0.7), look, fov: 52, roll: rolls[i], ...deep, lightColor: '#e8eeff', tint, ...fly },
+        ]
+    out.push(...legKeys, {
+      t: ts, pos: v3(atlasCam[i]), look, fov: fovs[i], roll: rolls[i], shift: [0.4, 0.02], shiftN: [0, 0.36], farN: 1.32,
+      ...deep, lightColor: '#e8eeff', tint, ship: [0.02, -0.68, 0.3], shipN: [0.5, -0.1, 0],
+    })
+  }
+  // se aleja del último objeto y entra en el salto de vuelta
+  const last = atlasCam[ATLAS_COUNT - 1], away = atlasViews[ATLAS_COUNT].clone().negate().add(new THREE.Vector3(0.4, 0.5, 0)).normalize()
+  out.push(
+    { t: ATLAS_LAST + 0.035, pos: at(last, away, 6), look: at(last, away, 200), fov: 62, roll: 0.06, ...deep, lightColor: '#e8eeff', tint: '#9db8ff', ...fly },
+    { t: T.atlasOut - 0.004, pos: at(last, away, 40), look: at(last, away, 240), fov: 80, ...deep, lightColor: '#e8eeff', tint: '#9db8ff', ...fly },
+  )
+  return out
+}
 
 /** La caída: de la órbita a la ciudad, a una ventana, al monitor y a un píxel. Se cierra con la misma pose del inicio. */
 function descentKeys(): Key[] {

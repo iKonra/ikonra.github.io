@@ -44,7 +44,7 @@ function Comet() {
   useFrame(({ camera }) => {
     const r = root.current
     if (!r) return
-    const f = win(J.t, 9.55, 10, 11.1, 11.6)
+    const f = win(J.t, 9.9, 10, 11.1, 11.6)
     r.visible = f > 0.01
     if (!r.visible) return
     m.k.value = f
@@ -115,7 +115,7 @@ export default function Belt({ q: qu }: { q: Quality }) {
   useFrame(() => {
     const g = group.current
     if (!g) return
-    g.visible = J.t > 9.35 && J.t < 11.7
+    g.visible = J.t > 9.895 && J.t < 11.7
     if (!g.visible) return
     const t = U.time.value
     meshes.current.forEach((im, k) => {

@@ -4,9 +4,9 @@ import type { Dict } from '../i18n/content'
 import type { Lang } from '../i18n/langs'
 import { useTicker } from '../lib/ticker'
 import { onProgress, progress } from '../universe/load'
-import { distanceLy, lyToKm } from '../universe/state'
+import { ATLAS_COUNT, T, atlasIndex, distanceLy, lyToKm } from '../universe/state'
 
-type Place = keyof Dict['hud']['places'] | number
+type Place = keyof Dict['hud']['places'] | number | `atlas-${number}` | 'atlas'
 
 /** Dónde estamos: un lugar con nombre, o el número de mundo (proyecto). */
 export function placeAt(t: number): Place {
@@ -15,7 +15,10 @@ export function placeAt(t: number): Place {
   if (t < 2.8) return 'jump'
   if (t < 4.08) return 'hole'
   if (t < 4.86) return 'wormhole'
-  if (t < 9.5) return Math.min(4, Math.max(0, Math.round(t - 5)))
+  if (t < 9.03) return Math.min(4, Math.max(0, Math.round(t - 5)))
+  if (t < T.atlas + 0.03) return 'wormhole'
+  if (t < T.atlasOut - 0.03) { const i = atlasIndex(t); return i < 0 ? 'atlas' : `atlas-${i}` }
+  if (t < T.atlasOut + 0.04) return 'jump'
   if (t < 11.5) return 'belt'
   if (t < 13.22) return 'saturn'
   if (t < 13.78) return 'moon'
@@ -30,7 +33,7 @@ export function placeAt(t: number): Place {
 }
 
 /** Qué mide el número: distancia a la Tierra, altura en la caída o distancia a la pantalla ya adentro. */
-const measureAt = (t: number) => (t < 14.15 || t >= 19 ? 'distance' : t < 16.9 ? 'altitude' : 'toScreen')
+const measureAt = (t: number) => (t > T.atlas + 0.02 && t < T.atlasOut - 0.02 ? 'atlas' : t < 14.15 || t >= 19 ? 'distance' : t < 16.9 ? 'altitude' : 'toScreen')
 
 function formatter(lang: Lang, hud: Dict['hud'], short: boolean) {
   const plain = new Intl.NumberFormat(lang, { maximumSignificantDigits: 3 })
@@ -48,7 +51,7 @@ function formatter(lang: Lang, hud: Dict['hud'], short: boolean) {
 export default function Readout({ short = false }: { short?: boolean }) {
   const { t, lang } = useI18n()
   const [place, setPlace] = useState<Place>('galaxy')
-  const [kind, setKind] = useState<'distance' | 'altitude' | 'toScreen'>('distance')
+  const [kind, setKind] = useState<'distance' | 'altitude' | 'toScreen' | 'atlas'>('distance')
   const dist = useRef<HTMLSpanElement>(null)
   const prev = useRef(NaN)
   const format = useMemo(() => formatter(lang, t.hud, short), [lang, t, short])
@@ -59,18 +62,21 @@ export default function Readout({ short = false }: { short?: boolean }) {
 
   useTicker(v => {
     setPlace(placeAt(v))
-    setKind(measureAt(v))
+    const k = measureAt(v)
+    setKind(k)
     if (!dist.current || Math.abs(v - prev.current) < 2e-4) return
     prev.current = v
+    // en el atlas no hay distancia a la Tierra que valga: se muestra el estado del objeto (hipotético, futuro…)
+    if (k === 'atlas') { const i = atlasIndex(v); dist.current.textContent = i < 0 ? `${t.atlas.place} · ${ATLAS_COUNT}` : `${t.atlas.items[i].status} · ${i + 1}/${ATLAS_COUNT}`; return }
     dist.current.textContent = format(distanceLy(v))
   })
 
-  const name = typeof place === 'number' ? t.projects.items[place].title : t.hud.places[place]
+  const name = typeof place === 'number' ? t.projects.items[place].title : place === 'atlas' ? t.atlas.title : place.startsWith('atlas-') ? t.atlas.items[Number(place.slice(6))].title : t.hud.places[place as keyof Dict['hud']['places']]
   const loading = !loaded && load > 0
   return (
     <p className="readout" aria-hidden>
       <span className="readout-place" key={String(place) + lang}>{name}</span>
-      <span className="readout-label">{loading ? t.hud.loading : t.hud[kind]}</span>
+      <span className="readout-label">{loading ? t.hud.loading : kind === 'atlas' ? t.atlas.status : t.hud[kind]}</span>
       {loading ? <span key="load" className="readout-value">{load} %</span> : <span key="dist" className="readout-value" ref={dist} />}
     </p>
   )

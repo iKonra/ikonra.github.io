@@ -15,7 +15,7 @@ export function Slot({ i, state, children }: { i: number; state: WorldState; chi
     const d = J.t - (5 + i)
     state.d = d
     state.k = smooth(-0.42, -0.02, d)
-    if (g.current) g.current.visible = J.t > 4.5 && d > -0.82 && d < 0.8
+    if (g.current) g.current.visible = J.t > 4.5 && J.t < 9.1 && d > -0.82 && d < 0.8
   }, -5)
   return <group ref={g} position={C.worlds[i]} visible={false}>{children}</group>
 }

@@ -173,7 +173,9 @@ export default function Sky({ q }: { q: Quality }) {
     const open = 1 - J.tunnel
     // el agujero negro dibuja su propio cielo curvado: ahí las estrellas sueltas se apagan
     const hole = win(J.t, 2.4, 2.5, 4.48, 4.6)
-    s.uI.value = pose.stars * open * (1 - hole)
+    // en el atlas el cielo es otro: lo dibuja atlas/Sky
+    const atlas = J.t >= 9.1 && J.t < 9.9 ? 1 : 0
+    s.uI.value = pose.stars * open * (1 - hole) * (1 - atlas)
     d.uI.value = pose.sky * 0.62 * open
     d.uTint.value.copy(pose.tint)
     const want = win(J.t, 11.5, 12.1, 13, 13.6) * 0.2 + win(J.t, 13.7, 14, 14.1, 14.4) * 0.11

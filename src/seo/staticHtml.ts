@@ -91,6 +91,16 @@ function block(lang: Lang) {
     })
     .join('\n        ')
 
+  const atlas = t.atlas.items
+    .map(a => `<article>
+          <h3>${esc(a.title)}</h3>
+          <p class="muted">${esc(a.tag)} · ${esc(a.status)}</p>
+          <p>${esc(a.text)}</p>
+          <p><strong>${esc(a.fact.value)}</strong> ${esc(a.fact.label)}</p>
+          <p class="muted">${esc(t.atlas.origin)}: ${esc(a.origin)}</p>
+        </article>`)
+    .join('\n        ')
+
   const contact = contactItems(lang)
     .map((c, i) => `<li><a class="btn ${i === 0 ? 'btn-accent' : 'btn-outline'}" href="${esc(c.href)}"${c.ext ? ' target="_blank" rel="noopener noreferrer"' : ''}>${esc(c.label)}</a></li>`)
     .join('')
@@ -122,6 +132,11 @@ function block(lang: Lang) {
         <h2>${esc(t.projects.title)}</h2>
         <p class="muted">${esc(t.projects.lead)}</p>
         ${projects}
+      </section>
+      <section id="atlas${sfx}" class="static-block">
+        <h2>${esc(t.atlas.title)}</h2>
+        <p class="muted">${esc(t.atlas.lead)}</p>
+        ${atlas}
       </section>
       <section id="stack${sfx}" class="static-block">
         <h2>${esc(t.stack.title)}</h2>

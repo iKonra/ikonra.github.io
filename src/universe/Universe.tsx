@@ -2,6 +2,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { degrade, prefersReducedMotion, useTier } from '../lib/perf'
+import Atlas from './atlas/Atlas'
 import Belt from './Belt'
 import BlackHole from './BlackHole'
 import City from './descent/City'
@@ -123,6 +124,7 @@ export default function Universe({ title, screen }: { title: string; screen: Scr
         <Web detail={q.detail} />
         <TwoBones big={q.bigTex} />
         <Bots />
+        <Atlas q={q} />
         <Belt q={q} />
         <Saturn q={q} />
         <Earth q={q} />

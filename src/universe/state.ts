@@ -1,13 +1,29 @@
 // Estado del viaje y traducción de scroll a t. Sin three.js: lo usan tanto la escena 3D como la interfaz.
 
 /* ------------------------------------------------------------------ escalas de t
-   0 inicio · 1→2 Sobre mí · 3→4 agujero negro · 5…9 un mundo por proyecto · 10→11 Stack · 12→13 Trayectoria · 14 Contacto
+   0 inicio · 1→2 Sobre mí · 3→4 agujero negro · 5…9 un mundo por proyecto · 9.1→9.9 atlas de objetos exóticos
+   10→11 Stack · 12→13 Trayectoria · 14 Contacto
    14→15 caída a la Tierra · 15→17 ciudad · 17→18.4 habitación · 18.4→19 píxel · 19→20 Big Bang: 20 es otra vez el inicio */
-export const T = { top: 0, about: 1, aboutEnd: 2, hole: 3, horizon: 4, worlds: 5, stack: 10, stackEnd: 11, journey: 12, journeyEnd: 13, contact: 14, bang: 19, end: 20 } as const
+export const T = { top: 0, about: 1, aboutEnd: 2, hole: 3, horizon: 4, worlds: 5, atlas: 9.1, atlasFirst: 9.18, atlasOut: 9.9, stack: 10, stackEnd: 11, journey: 12, journeyEnd: 13, contact: 14, bang: 19, end: 20 } as const
 export const WORLD_COUNT = 5
 
 /** Colores de cada mundo: tiñen el polvo, las luces, la grieta y la interfaz. */
 export const worldColors = ['#ff7a3c', '#4aa3ff', '#5b7cff', '#ff5a1f', '#7c86ff'] as const
+
+/* ------------------------------------------------------------------ atlas
+   Un salto fuera de lo conocido: ocho objetos que la física permite y nadie vio todavía (o casi).
+   Comparten el tramo 9.1…9.9 de t; cada uno tiene su parada, como los mundos. */
+export const ATLAS_COUNT = 8
+export const ATLAS_STEP = 0.09
+export const atlasStop = (i: number) => T.atlasFirst + i * ATLAS_STEP
+export const ATLAS_LAST = atlasStop(ATLAS_COUNT - 1)
+export const atlasIds = ['pbh', 'boson', 'quasi', 'quark', 'gravastar', 'white', 'dyson', 'dwarf'] as const
+export const atlasColors = ['#b98aff', '#4fe3c8', '#ff7a45', '#ff62c6', '#7fd4ff', '#c9d6ff', '#ffc55a', '#8f9bff'] as const
+/** Índice del objeto más cercano (o -1 fuera del atlas). */
+export function atlasIndex(t: number) {
+  if (t < T.atlasFirst - ATLAS_STEP * 0.2 || t > ATLAS_LAST + ATLAS_STEP * 0.55) return -1
+  return Math.min(ATLAS_COUNT - 1, Math.max(0, Math.round((t - T.atlasFirst) / ATLAS_STEP)))
+}
 
 /* ------------------------------------------------------------------ estado compartido */
 export const J = {
@@ -67,7 +83,7 @@ export function burst() {
 /* ------------------------------------------------------------------ DOM → t */
 type Anchor = { y: number; t: number }
 let anchors: Anchor[] = [{ y: 0, t: 0 }, { y: 1, t: 14 }]
-let worldsTop = 0, worldsLen = 1
+let worldsTop = 0, worldsLen = 1, atlasTop = 0, atlasLen = 0
 
 const rect = (id: string) => {
   const el = document.getElementById(id)
@@ -92,6 +108,18 @@ function measure() {
   if (a) { push(a.top - vh * 0.1, T.about); push(a.bottom - vh * 1.05, T.aboutEnd) }
   if (h) { push(h.top, T.hole); push(h.bottom - vh, T.horizon) }
   if (w) { worldsTop = w.top; worldsLen = Math.max(1, w.bottom - vh - w.top); push(w.top, T.worlds); push(w.bottom - vh, T.worlds + WORLD_COUNT - 1) }
+  // atlas: salto, portada (el título sobre el vivero de estrellas), una parada por objeto y salto de vuelta
+  const ah = rect('atlas-head'), at = rect('atlas-track'), ao = rect('atlas-out')
+  atlasLen = 0
+  if (ah && at && ao) {
+    push(ah.top - vh * 0.2, T.atlas + 0.035)
+    push(ah.bottom - vh * 1.1, T.atlas + 0.06)
+    atlasTop = at.top
+    atlasLen = Math.max(1, at.bottom - vh - at.top)
+    push(at.top, T.atlasFirst)
+    push(at.bottom - vh, ATLAS_LAST)
+    push(ao.bottom - vh * 0.6, T.atlasOut + 0.04)
+  }
   if (s) { push(s.top - vh * 0.25, T.stack); push(s.bottom - vh * 0.8, T.stackEnd) }
   if (j) { push(j.top - vh * 0.15, T.journey); push(j.bottom - vh * 0.75, T.journeyEnd) }
   const c = rect('contact'), d = rect('descent')
@@ -119,6 +147,7 @@ export function hold(raw: number, last: number) {
 export function scrollToT(y: number) {
   const last = WORLD_COUNT - 1
   if (y > worldsTop && y < worldsTop + worldsLen && worldsLen > 1) return T.worlds + hold(((y - worldsTop) / worldsLen) * last, last)
+  if (atlasLen > 1 && y > atlasTop && y < atlasTop + atlasLen) return T.atlasFirst + hold(((y - atlasTop) / atlasLen) * (ATLAS_COUNT - 1), ATLAS_COUNT - 1) * ATLAS_STEP
   let i = 0
   while (i < anchors.length - 2 && y > anchors[i + 1].y) i++
   const a = anchors[i], b = anchors[i + 1]
@@ -157,8 +186,11 @@ export const smooth = (a: number, b: number, v: number) => {
 export const win = (t: number, a0: number, a1: number, b0: number, b1: number) => smooth(a0, a1, t) * (1 - smooth(b0, b1, t))
 export const damp = (a: number, b: number, lambda: number, dt: number) => a + (b - a) * (1 - Math.exp(-lambda * dt))
 
-/** Los dos saltos: entre Sobre mí y el agujero negro, y el agujero de gusano hacia los mundos. */
-export const tunnelAt = (t: number) => Math.max(win(t, 2.14, 2.44, 2.56, 2.86), win(t, 4.04, 4.3, 4.66, 4.96))
+/** Los saltos: entre Sobre mí y el agujero negro, el agujero de gusano hacia los mundos, y la ida y vuelta del atlas. */
+export const tunnelAt = (t: number) => Math.max(
+  win(t, 2.14, 2.44, 2.56, 2.86), win(t, 4.04, 4.3, 4.66, 4.96),
+  win(t, T.atlas - 0.07, T.atlas - 0.022, T.atlas + 0.016, T.atlas + 0.05), win(t, T.atlasOut - 0.055, T.atlasOut - 0.018, T.atlasOut + 0.02, T.atlasOut + 0.06),
+)
 
 /** Distancia a la Tierra (en años luz) según el punto del viaje: escala logarítmica entre hitos reales. */
 const LY_KM = 9.4607e12

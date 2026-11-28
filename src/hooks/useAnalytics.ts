@@ -4,7 +4,7 @@ import { exploreFlag, pilotFlag, soundFlag } from '../lib/flags'
 import { getTier } from '../lib/perf'
 import { onTick } from '../lib/ticker'
 import { dictionaries } from '../i18n/content'
-import { J, T, layout } from '../universe/state'
+import { ATLAS_LAST, J, T, layout } from '../universe/state'
 
 // Qué se mide (todo anónimo):
 //   · Hasta dónde llega cada visita en el viaje. Una etapa cuenta solo si la persona se quedó un momento ahí:
@@ -25,6 +25,8 @@ function stages(): Stage[] {
   add('Sobre mí', T.about, T.aboutEnd + 0.1)
   add('Proyectos', T.hole, T.horizon + 0.2)
   dictionaries.es.projects.items.forEach((p, i) => add(projectNames[p.id] ?? p.title, T.worlds + i - 0.3, T.worlds + i + 0.3, 1.2))
+  add('Atlas', T.atlas + 0.03, T.atlasOut - 0.03, 1.5)
+  add('Atlas completo', ATLAS_LAST - 0.02, T.atlasOut - 0.03, 1)
   add('Stack', T.stack, T.stackEnd + 0.2)
   add('Trayectoria', T.journey, T.journeyEnd + 0.2)
   add('Contacto', T.contact - 0.3, T.contact + 0.3)

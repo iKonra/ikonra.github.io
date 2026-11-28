@@ -5,6 +5,7 @@ import { useI18n } from '../i18n/I18nProvider'
 import VariableProximity from '../components/VariableProximity'
 import { Magnetic } from '../components/effects'
 import { useTicker } from '../lib/ticker'
+import { commitTotal } from '../universe/commits'
 import { J, burst, layout, smooth } from '../universe/state'
 import { trackOnce } from '../lib/analytics'
 
@@ -52,10 +53,18 @@ export default function Hero() {
         <div className="hero-touch" onClick={morph} data-cursor={t.hero.morph} aria-hidden />
       </motion.div>
       <motion.a href="#about" className="scroll-hint" style={{ opacity }}><i aria-hidden /> {t.hero.scroll}</motion.a>
-      <motion.button className="galaxy-btn" style={{ opacity }} onClick={morph} aria-label={`${t.hero.morph}: ${t.hero.galaxies[galaxy]}`}>
-        <strong key={galaxy}>{t.hero.galaxies[galaxy]}</strong>
-        <span><RefreshCw size={13} aria-hidden /> {t.hero.morph}</span>
-      </motion.button>
+      <motion.div className="galaxy-dock" style={{ opacity }}>
+        {/* las estrellas doradas solo están en la Vía Láctea */}
+        {commitTotal > 0 && (
+          <p className={`commit-legend${galaxy === 0 ? '' : ' is-off'}`}>
+            <i aria-hidden /> {t.hero.stars.replace('{n}', new Intl.NumberFormat(lang).format(commitTotal))}
+          </p>
+        )}
+        <button className="galaxy-btn" onClick={morph} aria-label={`${t.hero.morph}: ${t.hero.galaxies[galaxy]}`}>
+          <strong key={galaxy}>{t.hero.galaxies[galaxy]}</strong>
+          <span><RefreshCw size={13} aria-hidden /> {t.hero.morph}</span>
+        </button>
+      </motion.div>
     </section>
     </div>
   )

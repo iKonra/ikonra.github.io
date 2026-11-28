@@ -72,7 +72,8 @@ export default function Tunnel() {
     if (!me.visible) return
     const u = mat.uniforms
     u.uA.value = a
-    u.uMode.value = J.t > 3.6 ? 1 : 0
+    // el agujero de gusano lleva a los mundos y al atlas; la vuelta del atlas es a la velocidad de la luz
+    u.uMode.value = J.t > 3.6 && J.t < 9.5 ? 1 : 0
     u.uPhase.value = J.t
     u.uMouse.value.set(-J.mx, -J.my)
     void pose

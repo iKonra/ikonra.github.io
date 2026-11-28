@@ -107,7 +107,7 @@ function step(time: number) {
   ramp = Math.min(1, ramp + dt / 1.4)
   const t = scrollToT(pos)
   // más despacio donde hay texto para leer
-  const speed = t > 4.95 && t < 9.1 ? 0.15 : t > 1 && t < 2 ? 0.19 : t > 9.9 && t < 13.1 ? 0.17 : t > 15.2 && t < 18.3 ? 0.24 : 0.28
+  const speed = t > 4.95 && t < 9.86 ? 0.15 : t > 1 && t < 2 ? 0.19 : t > 9.9 && t < 13.1 ? 0.17 : t > 15.2 && t < 18.3 ? 0.24 : 0.28
   pos += layout.vh * speed * ramp * dt
   jump(Math.min(pos, layout.max))
   // con el bucle no termina nunca: espera a que la cámara llegue y sigue desde el inicio

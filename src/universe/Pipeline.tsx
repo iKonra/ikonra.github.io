@@ -2,12 +2,12 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { fsVertex, hash, noise3 } from './glsl'
-import { C, J, damp, pose, win } from './journey'
+import { C, J, T, damp, pose, win } from './journey'
 import type { Quality } from './quality'
 import { compilePass, warmStart } from './warm'
 
 // Render propio en vez de una librería de postproceso: escena HDR → bloom por mips → composición final
-// (warp, aberración, grieta espacio-temporal, curva fílmica, viñeta y grano) en una sola pasada.
+// (warp, aberración, ondas en la tela del espacio-tiempo, curva fílmica, viñeta y grano) en una sola pasada.
 
 export const tri = (() => {
   const g = new THREE.BufferGeometry()
@@ -42,43 +42,36 @@ void main(){
   gl_FragColor = vec4(c / 16. * uAmt, 1.);
 }`
 
-// Estela del mouse: r = cuánto se abrió la grieta en ese punto. Se cierra sola.
+// Tela del espacio-tiempo: ecuación de onda en una grilla chica. r = altura ahora, g = altura en el paso anterior.
+// El cursor la hunde por donde pasa, el click la golpea, y las ondas se propagan y se apagan solas.
 const trail = /* glsl */ `
-uniform sampler2D tIn; uniform vec2 uA, uB, uTexel; uniform float uAmt, uAspect, uDecay, uRad, uStep; varying vec2 vUv;
+uniform sampler2D tIn; uniform vec2 uA, uB, uTexel, uHit; uniform float uAmt, uAspect, uRad, uHitAmt; varying vec2 vUv;
 void main(){
-  vec4 p = texture2D(tIn, vUv);
-  float n = (texture2D(tIn, vUv + vec2(uTexel.x, 0.)).r + texture2D(tIn, vUv - vec2(uTexel.x, 0.)).r + texture2D(tIn, vUv + vec2(0., uTexel.y)).r + texture2D(tIn, vUv - vec2(0., uTexel.y)).r) * .25;
-  float k = max(mix(p.r, n, min(.06 * uStep, .4)) * uDecay - .0014 * uStep, 0.);
-  vec2 q = vUv * vec2(uAspect, 1.), a = uA * vec2(uAspect, 1.), b = uB * vec2(uAspect, 1.);
-  vec2 ba = b - a;
-  float h = clamp(dot(q - a, ba) / max(dot(ba, ba), 1e-6), 0., 1.);
-  float d = length(q - a - ba * h);
-  k = max(k, exp(-d * d / (uRad * uRad)) * uAmt);
-  gl_FragColor = vec4(min(k, 1.), 0., 0., 1.);
+  vec4 c = texture2D(tIn, vUv);
+  float h = c.r;
+  float lap = texture2D(tIn, vUv + vec2(uTexel.x, 0.)).r + texture2D(tIn, vUv - vec2(uTexel.x, 0.)).r
+            + texture2D(tIn, vUv + vec2(0., uTexel.y)).r + texture2D(tIn, vUv - vec2(0., uTexel.y)).r - 4. * h;
+  float next = (2. * h - c.g + .42 * lap) * .982;
+  // los bordes absorben: nada rebota contra el marco de la pantalla
+  vec2 e = min(vUv, 1. - vUv);
+  next *= smoothstep(0., .04, min(e.x, e.y));
+  vec2 asp = vec2(uAspect, 1.), q = vUv * asp, a = uA * asp, ba = uB * asp - a;
+  float t = clamp(dot(q - a, ba) / max(dot(ba, ba), 1e-6), 0., 1.), d = length(q - a - ba * t);
+  next -= exp(-d * d / (uRad * uRad)) * uAmt;
+  vec2 hq = (vUv - uHit) * asp;
+  next -= exp(-dot(hq, hq) / .0016) * uHitAmt;
+  gl_FragColor = vec4(clamp(next, -4., 4.), h, 0., 1.);
 }`
 
 const final = /* glsl */ `
 uniform sampler2D tScene, tBloom, tTrail;
 uniform vec2 uRes;
-uniform float uTime, uBloom, uWarp, uTunnel, uGrain, uRift, uCells, uFlash, uExposure, uLens;
-uniform vec3 uTint, uHit, uFlashCol;
-uniform vec2 uMouse, uFlashAt;
+uniform float uTime, uBloom, uWarp, uTunnel, uGrain, uRift, uCells, uFlash, uExposure, uLens, uStir;
+uniform vec3 uTint, uFlashCol;
+uniform vec2 uMouse, uFlashAt, uSim;
 varying vec2 vUv;
 ${hash}
 ${noise3}
-vec3 voronoi(vec2 x){
-  vec2 n = floor(x), f = fract(x), mg, mr; float md = 8.;
-  for(int j = -1; j <= 1; j++) for(int i = -1; i <= 1; i++){
-    vec2 g = vec2(float(i), float(j)), r = g + hash22(n + g) - f; float d = dot(r, r);
-    if(d < md){ md = d; mr = r; mg = g; }
-  }
-  md = 8.;
-  for(int j = -2; j <= 2; j++) for(int i = -2; i <= 2; i++){
-    vec2 g = mg + vec2(float(i), float(j)), r = g + hash22(n + g) - f;
-    if(dot(mr - r, mr - r) > 1e-5) md = min(md, dot(.5 * (mr + r), normalize(r - mr)));
-  }
-  return vec3(md, n + mg);
-}
 vec3 aces(vec3 v){
   v = mat3(.59719, .07600, .02840, .35458, .90834, .13383, .04823, .01566, .83777) * v;
   vec3 a = v * (v + .0245786) - .000090537, b = v * (.983729 * v + .4329510) + .238081;
@@ -87,41 +80,37 @@ vec3 aces(vec3 v){
 vec3 toSrgb(vec3 c){ return mix(c * 12.92, 1.055 * pow(max(c, vec3(1e-5)), vec3(1. / 2.4)) - .055, step(vec3(.0031308), c)); }
 void main(){
   vec2 uv = vUv, asp = vec2(uRes.x / uRes.y, 1.);
-  vec3 extra = vec3(0.); float dark = 1.;
+  vec3 extra = vec3(0.);
 
-  // ---- onda del golpe (click)
-  float age = uHit.z;
-  if(age < 1.6){
-    vec2 d = (uv - uHit.xy) * asp; float r = length(d), R = age * 1.15;
-    float ring = exp(-pow(abs((r - R) * 9.), 2.)) * (1. - age / 1.6);
-    uv -= normalize(d + 1e-5) / asp * ring * .035;
-    extra += uTint * ring * .22;
-  }
-
-  // ---- grieta espacio-temporal
-  float k = uRift > 0. ? texture2D(tTrail, vUv).r * uRift : 0.;
-  if(k > .012){
-    vec2 g = vUv * asp * uCells;
-    g += vec2(vnoise(vec3(g * 1.7, 3.)), vnoise(vec3(g * 1.7, 9.))) * .55;
-    vec3 v = voronoi(g);
-    vec2 id = hash22(v.yz + 7.3);
-    float open = smoothstep(.03, .85, k);
-    // cada astilla se desplaza y deja ver un poco de lo que hay detrás
-    uv += (id - .5) * open * .022 / asp;
-    float w = .006 + .12 * open * open * (.35 + id.x);
-    float crack = 1. - smoothstep(w * .55, w, v.x);
-    float glow = exp(-v.x * mix(60., 13., open)) * open;
-    // del otro lado de la grieta: otro universo, con paralaje propio
-    vec2 m = (vUv - uMouse) * asp;
-    vec3 pp = vec3(vUv * asp * 2.2 + m * .9, uTime * .12);
-    float n1 = fbm(pp, 4), n2 = fbm(pp * 2.1 + n1 * 2.4 + 4., 3);
-    vec3 hot = mix(uTint, vec3(1.), .45), cold = uTint.brg;
-    vec3 other = mix(cold * .35, hot * 1.9, smoothstep(-.25, .45, n1 + n2 * .6));
-    other += pow(max(hash21(floor(vUv * uRes / 2.6)) - .988, 0.) * 83., 3.);
-    extra += other * crack * smoothstep(.05, .5, k) + mix(uTint, vec3(1.), .25) * glow * .7;
-    dark = 1. - crack * smoothstep(.05, .4, k) * .9;
-    // filo: borde iluminado de cada astilla
-    extra += smoothstep(w * 1.7, w, v.x) * (1. - crack) * open * .35;
+  // ---- ondas gravitacionales: la tela se hunde bajo el cursor y las ondas curvan la luz que pasa
+  float k = 0.; vec2 disp = vec2(0.);
+  if(uRift > 0.){
+    vec2 st = 1. / uSim;
+    float h = texture2D(tTrail, vUv).r * uRift;
+    vec2 gw = vec2(texture2D(tTrail, vUv + vec2(st.x, 0.)).r - texture2D(tTrail, vUv - vec2(st.x, 0.)).r,
+                   texture2D(tTrail, vUv + vec2(0., st.y)).r - texture2D(tTrail, vUv - vec2(0., st.y)).r) * uRift;
+    uv += gw * .05;
+    // cada color se desvía distinto en el frente de onda
+    disp = gw * .03;
+    k = min(length(gw) * 20., 1.);
+    // la tela solo se ve donde está alterada: una grilla fina que siguen las ondas y que se hunde hacia el cursor
+    vec2 md = (vUv - uMouse) * asp;
+    float m2 = dot(md, md), lens = uLens / .34;
+    float cells = uCells * 2.2;
+    // pozo: cerca del cursor la grilla se junta hacia el centro, como una tela hundida por una masa
+    vec2 well = -md * exp(-m2 * 70.) * lens * .55;
+    // la onda la corre como mucho un tercio de celda: más, y las líneas se enrulan
+    vec2 sh = gw * cells * .9;
+    vec2 gp = (vUv * asp + well) * cells + sh * min(1., .33 / max(length(sh), 1e-4));
+    vec2 gl = abs(fract(gp + .5) - .5) / max(fwidth(gp), vec2(1e-4));
+    float line = 1. - smoothstep(.15, 1.15, min(gl.x, gl.y));
+    // con el mouse quieto el pozo queda apenas insinuado
+    float act = min(smoothstep(.006, .05, abs(h)) + exp(-m2 * 22.) * lens * (.2 + .7 * uStir), 1.);
+    vec3 fab = mix(uTint, vec3(1.), .4);
+    extra += fab * line * act * act * .2;
+    // brillo de la cresta, del lado de donde viene la luz: fino, solo donde la pendiente es fuerte
+    float crest = max(dot(gw, vec2(-.55, .83)), 0.) * 12.;
+    extra += fab * min(crest * crest, 1.) * .07;
   }
 
   // ---- el cursor curva la luz a su alrededor, como una lente gravitacional
@@ -133,7 +122,7 @@ void main(){
 
   // ---- warp: desenfoque radial con separación de color
   vec2 c = uv - .5; float r2 = dot(c * asp, c * asp);
-  float ca = .0006 + r2 * .0022 + uWarp * .006 + uTunnel * .006 + k * .004;
+  float ca = .0006 + r2 * .0022 + uWarp * .006 + uTunnel * .006 + k * .003;
   vec3 col;
   float blur = uWarp * .11 + uTunnel * .16;
   if(blur > .004){
@@ -144,10 +133,9 @@ void main(){
       col += vec3(texture2D(tScene, p + c * ca * f * 2.).r, texture2D(tScene, p).g, texture2D(tScene, p - c * ca * f * 2.).b) * w; tot += w;
     }
     col /= tot;
-  } else col = vec3(texture2D(tScene, uv + c * ca).r, texture2D(tScene, uv).g, texture2D(tScene, uv - c * ca).b);
+  } else col = vec3(texture2D(tScene, uv + c * ca + disp).r, texture2D(tScene, uv).g, texture2D(tScene, uv - c * ca - disp).b);
 
   col += texture2D(tBloom, uv).rgb * uBloom;
-  col *= dark;
   col += extra;
   // el fogonazo nace en un punto: los bordes conservan el color del lugar
   if(uFlash > .001){ vec2 fd = (vUv - uFlashAt) * asp; col += uFlash * mix(uFlashCol, vec3(1.), .4) * (.1 + 2.2 * exp(-dot(fd, fd) * 7.)); }
@@ -162,10 +150,11 @@ function mat(fragmentShader: string, uniforms: Record<string, THREE.IUniform>, b
   return new THREE.ShaderMaterial({ vertexShader: fsVertex, fragmentShader, uniforms, blending, depthTest: false, depthWrite: false, transparent: blending !== THREE.NoBlending })
 }
 
-/** La grieta se adapta al lugar: fina y densa entre el hielo, ancha en la nebulosa, casi nula en pleno salto. */
+/** La tela se adapta al lugar: grilla fina y densa entre el hielo, ancha en la nebulosa, casi nula en pleno salto. */
 const riftLevel = () => (1 - J.tunnel * 0.8) * (J.explore ? 0.6 : 1) * (1 - 0.6 * win(J.raw, 16.5, 17.2, 19, 19.2))
 function riftCells() {
   const t = J.t
+  if (t > T.atlas && t < T.atlasOut) return 8
   if (t > 9.6 && t < 11.6) return 15
   if (t > 2.6 && t < 4.6) return 6.5
   if (t > 0.6 && t < 2.6) return 7.5
@@ -179,7 +168,7 @@ const hyper = new THREE.Color('#5f8dff')
 function flash() {
   const b = J.birth > 0 && J.birth < 0.5 ? Math.exp(-J.birth * 12) * 0.8 : 0
   const s = (c: number) => Math.exp(-Math.pow((J.raw - c) / 0.05, 2))
-  return b + s(19) * 0.5 + (s(2.5) * 0.3 + s(4.5) * 0.42) * Math.min(1, 0.25 + J.tunnel)
+  return b + s(19) * 0.5 + (s(2.5) * 0.3 + s(4.5) * 0.42 + s(T.atlas) * 0.45 + s(T.atlasOut) * 0.3) * Math.min(1, 0.25 + J.tunnel)
 }
 
 export default function Pipeline({ q }: { q: Quality }) {
@@ -190,7 +179,9 @@ export default function Pipeline({ q }: { q: Quality }) {
     const opt = { type, depthBuffer: false, stencilBuffer: false, generateMipmaps: false }
     const scene = new THREE.WebGLRenderTarget(4, 4, { ...opt, depthBuffer: true, samples: q.msaa })
     const mips = Array.from({ length: q.bloomLevels }, () => new THREE.WebGLRenderTarget(4, 4, opt))
-    const trails = [0, 1].map(() => new THREE.WebGLRenderTarget(256, 144, opt))
+    // la onda necesita valores negativos: sin texturas de punto flotante no hay tela
+    const sim = type !== THREE.UnsignedByteType
+    const trails = [0, 1].map(() => new THREE.WebGLRenderTarget(384, 216, opt))
     const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
     const quad = new THREE.Mesh<THREE.BufferGeometry, THREE.Material>(tri)
     quad.frustumCulled = false
@@ -198,15 +189,18 @@ export default function Pipeline({ q }: { q: Quality }) {
     qs.add(quad)
     const mDown = mat(down, { tIn: { value: null }, uTexel: { value: new THREE.Vector2() }, uFirst: { value: 0 } })
     const mUp = mat(up, { tIn: { value: null }, uTexel: { value: new THREE.Vector2() }, uAmt: { value: 1 } }, THREE.AdditiveBlending)
-    const mTrail = mat(trail, { tIn: { value: null }, uA: { value: new THREE.Vector2() }, uB: { value: new THREE.Vector2() }, uTexel: { value: new THREE.Vector2(1 / 256, 1 / 144) }, uAmt: { value: 0 }, uAspect: { value: 1 }, uDecay: { value: 1 }, uRad: { value: 0.07 }, uStep: { value: 1 } })
+    const mTrail = mat(trail, {
+      tIn: { value: null }, uA: { value: new THREE.Vector2() }, uB: { value: new THREE.Vector2() }, uTexel: { value: new THREE.Vector2(1 / 384, 1 / 216) },
+      uAmt: { value: 0 }, uAspect: { value: 1 }, uRad: { value: 0.03 }, uHit: { value: new THREE.Vector2(0.5, 0.5) }, uHitAmt: { value: 0 },
+    })
     const mFinal = mat(final, {
       tScene: { value: scene.texture }, tBloom: { value: mips[0].texture }, tTrail: { value: trails[0].texture }, uRes: { value: new THREE.Vector2(1, 1) },
       uTime: { value: 0 }, uBloom: { value: 1 }, uWarp: { value: 0 }, uTunnel: { value: 0 }, uGrain: { value: 0.045 }, uRift: { value: 0 }, uLens: { value: 0 }, uCells: { value: 9 },
-      uFlash: { value: 0 }, uExposure: { value: 1 }, uTint: { value: new THREE.Color() }, uHit: { value: new THREE.Vector3(0.5, 0.5, 99) }, uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+      uFlash: { value: 0 }, uExposure: { value: 1 }, uTint: { value: new THREE.Color() }, uMouse: { value: new THREE.Vector2(0.5, 0.5) }, uStir: { value: 0 }, uSim: { value: new THREE.Vector2(384, 216) },
       uFlashAt: { value: new THREE.Vector2(0.5, 0.5) }, uFlashCol: { value: new THREE.Color() },
     })
     const pass = (m: THREE.ShaderMaterial, target: THREE.WebGLRenderTarget | null) => { quad.material = m; gl.setRenderTarget(target); gl.render(qs, cam) }
-    return { scene, mips, trails, mDown, mUp, mTrail, mFinal, quad, qs, cam, pass, flip: 0 }
+    return { scene, mips, trails, sim, mDown, mUp, mTrail, mFinal, quad, qs, cam, pass, flip: 0 }
   }, [gl, q.msaa, q.bloomLevels])
 
   useEffect(() => () => {
@@ -228,9 +222,14 @@ export default function Pipeline({ q }: { q: Quality }) {
     })
     p.mFinal.uniforms.uRes.value.set(w, h)
     p.mTrail.uniforms.uAspect.value = w / h
+    // celdas cuadradas en pantalla: si no, las ondas viajarían más rápido de costado
+    const sh = 216, sw = Math.min(520, Math.max(120, Math.round((sh * w) / h)))
+    p.trails.forEach(t => t.setSize(sw, sh))
+    p.mTrail.uniforms.uTexel.value.set(1 / sw, 1 / sh)
+    p.mFinal.uniforms.uSim.value.set(sw, sh)
   }, [p, size, viewport.dpr, q.bloomStart])
 
-  const last = useRef({ x: 0.5, y: 0.5, amt: 0 })
+  const last = useRef({ x: 0.5, y: 0.5, amt: 0, acc: 0, age: 99, hit: false })
   const moved = useRef(false)
   const started = useRef(false)
 
@@ -268,34 +267,45 @@ export default function Pipeline({ q }: { q: Quality }) {
       p.pass(p.mUp, p.mips[i - 1])
     }
 
-    // estela de la grieta
-    if (q.rift) {
+    // tela del espacio-tiempo: pasos fijos de 1/60 s, así las ondas viajan igual a 60 o a 144 fps
+    const rift = q.rift && p.sim
+    if (rift) {
       const l = last.current
       const x = J.px * 0.5 + 0.5, y = J.py * 0.5 + 0.5
       const sp = Math.hypot(x - l.x, y - l.y) / Math.max(dt, 1e-3)
       if (sp > 0) moved.current = true
       l.amt = damp(l.amt, Math.min(1, sp * 0.8), sp > 0.05 ? 14 : 5, dt)
-      const a = p.trails[p.flip], b = p.trails[1 - p.flip]
       const tu = p.mTrail.uniforms
-      tu.tIn.value = a.texture
-      tu.uA.value.set(l.x, l.y)
-      tu.uB.value.set(x, y)
-      tu.uAmt.value = sp < 0.02 ? 0 : l.amt
-      tu.uDecay.value = Math.exp(-dt * 1.25)
-      tu.uStep.value = dt * 60
-      tu.uRad.value = 0.045 + l.amt * 0.07
-      p.pass(p.mTrail, b)
-      p.flip = 1 - p.flip
-      l.x = x
-      l.y = y
-      u.tTrail.value = b.texture
+      // el golpe espera al próximo paso: a más de 60 fps hay cuadros sin paso
+      if (J.hit.age < l.age) l.hit = true
+      l.age = J.hit.age
+      l.acc = Math.min(l.acc + dt * 60, 3)
+      let first = true
+      while (l.acc >= 1) {
+        l.acc -= 1
+        const a = p.trails[p.flip], b = p.trails[1 - p.flip]
+        tu.tIn.value = a.texture
+        tu.uA.value.set(l.x, l.y)
+        tu.uB.value.set(x, y)
+        tu.uAmt.value = first && sp > 0.02 ? l.amt * 0.014 : 0
+        tu.uRad.value = 0.022 + l.amt * 0.02
+        tu.uHit.value.set(J.hit.x, J.hit.y)
+        tu.uHitAmt.value = first && l.hit ? 0.6 : 0
+        if (first) l.hit = false
+        p.pass(p.mTrail, b)
+        p.flip = 1 - p.flip
+        first = false
+      }
+      if (!first) { l.x = x; l.y = y }
+      u.tTrail.value = p.trails[p.flip].texture
       u.uMouse.value.set(x, y)
+      // sube rápido al mover el mouse y baja despacio al soltarlo
+      u.uStir.value = damp(u.uStir.value, Math.min(1, l.amt * 1.6), l.amt * 1.6 > u.uStir.value ? 8 : 0.9, dt)
     }
-    u.uRift.value = q.rift ? riftLevel() : 0
-    u.uLens.value = damp(u.uLens.value, q.rift && moved.current && !J.narrow ? 0.34 * (1 - J.tunnel) : 0, 3, dt)
+    u.uRift.value = rift ? riftLevel() : 0
+    u.uLens.value = damp(u.uLens.value, rift && moved.current && !J.narrow ? 0.34 * (1 - J.tunnel) : 0, 3, dt)
     u.uCells.value = riftCells()
     J.hit.age += dt
-    u.uHit.value.set(J.hit.x, J.hit.y, J.hit.age)
     u.uTime.value += dt
     u.uBloom.value = pose.bloom * (1 - J.tunnel * 0.5)
     // el ojo se acostumbra: dentro de los túneles y pegado al disco, menos exposición

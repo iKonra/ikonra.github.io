@@ -1,16 +1,17 @@
 import { X } from 'lucide-react'
-import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { useI18n } from '../i18n/I18nProvider'
 import { exploreFlag } from '../lib/flags'
 import { interceptAnchors, travelTo, travelToId, watchLoop } from '../lib/scroll'
 import { useTicker } from '../lib/ticker'
+import { commitDays, commitTip } from '../universe/commits'
 import { J, T, beacon, layout, smooth, tToScroll, watchLayout } from '../universe/state'
 import Readout from './Readout'
 import Tools from './Tools'
 
 const ABOUT_STOP = 1.7
 /** t de cada parada de la ruta, en orden. */
-const stops = [T.top, ABOUT_STOP, T.hole, 5, 6, 7, 8, 9, T.stack, T.journey, T.contact] as const
+const stops = [T.top, ABOUT_STOP, T.hole, 5, 6, 7, 8, 9, T.atlasFirst, T.stack, T.journey, T.contact] as const
 
 /** Ruta del viaje: una estrella por parada y una nave que avanza. */
 function Rail() {
@@ -23,6 +24,7 @@ function Rail() {
     [t.nav.about, h.nebula],
     [t.nav.projects, h.hole],
     ...t.projects.items.map((p, i): [string, string] => [p.title, `${t.nav.projects} ${i + 1}/${t.projects.items.length}`]),
+    [t.atlas.title, t.atlas.place],
     [t.nav.stack, h.belt],
     [t.nav.journey, h.saturn],
     [t.nav.contact, h.earth],
@@ -85,6 +87,35 @@ function Beacon() {
   return <span ref={ref} className="beacon" aria-hidden><span>{t.hud.beacon}</span></span>
 }
 
+/** Detalle del día de contribuciones que señala el cursor en la galaxia del inicio. */
+function CommitTip() {
+  const { t, lang } = useI18n()
+  const ref = useRef<HTMLSpanElement>(null)
+  const date = useRef<HTMLElement>(null)
+  const count = useRef<HTMLElement>(null)
+  const shown = useRef(-1)
+  const fmt = useMemo(() => ({
+    date: new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }),
+    num: new Intl.NumberFormat(lang),
+  }), [lang])
+  useEffect(() => { shown.current = -1 }, [fmt, t])
+  useTicker(() => {
+    const el = ref.current
+    if (!el) return
+    const i = commitTip.day
+    el.classList.toggle('is-on', i >= 0)
+    document.documentElement.classList.toggle('commit-on', i >= 0)
+    if (i < 0) return
+    el.style.transform = `translate3d(${commitTip.x.toFixed(1)}px, ${commitTip.y.toFixed(1)}px, 0)`
+    if (i === shown.current || !date.current || !count.current) return
+    shown.current = i
+    const d = commitDays[i]
+    date.current.textContent = fmt.date.format(new Date(`${d.date}T00:00:00Z`))
+    count.current.textContent = `${fmt.num.format(d.count)} ${t.hero.contrib[d.count === 1 ? 0 : 1]}`
+  })
+  return <span ref={ref} className="commit-tip" aria-hidden><span><strong ref={date} /><em ref={count} /></span></span>
+}
+
 /** Modo explorar: se esconde la interfaz y la cámara gira libre alrededor de lo que haya enfrente. */
 function Explore() {
   const { t } = useI18n()
@@ -145,6 +176,7 @@ export default function Hud() {
   return (
     <>
       <Beacon />
+      <CommitTip />
       <Rail />
       <Console />
       <Explore />
